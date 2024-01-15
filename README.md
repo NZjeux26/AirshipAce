@@ -9,7 +9,6 @@ Airship Ace is the game I've been wanting to make for almost two years now, it's
 - Full graphics, no placeholders.
 - Scoring
 - Enemy AI
-- SFX for all weapons, folly sounds, and enemies
 - Basic menu structure.
 
 Airships will follow physics, and the player will need to contend with its correct management. So mass(weapons, ammo, cargo, crew, ship, ballast, fuel), buoyancy, engines, and defending it from enemies attempting to prevent its mission.
