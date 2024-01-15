@@ -28,6 +28,13 @@ else()
 endif()
 
 add_subdirectory(deps/ace ace)
+message(STATUS "executable: ${GAME_EXECUTABLE}")
+message(STATUS "src: ${RES_DIR}/Palettes/MarsT1.gpl")
+message(STATUS "dst: ${DATA_DIR}/menupal.plt")
+set(RES_DIR ${CMAKE_CURRENT_LIST_DIR}/res)
+set(DATA_DIR ${CMAKE_CURRENT_BINARY_DIR}/data)
+file(MAKE_DIRECTORY ${DATA_DIR})
+convertPalette(${AirshipAce_EXECUTABLE} ${RES_DIR}/Palettes/MarsT1.gpl ${DATA_DIR}menupal.plt)
 
 # Version stuff
 string(TIMESTAMP YEAR "%y")
