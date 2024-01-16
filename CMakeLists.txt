@@ -28,7 +28,7 @@ else()
 endif()
 
 add_subdirectory(deps/ace ace)
-message(STATUS "executable: ${GAME_EXECUTABLE}")
+message(STATUS "executable: ${AIRSHIP_EXECUTABLE}")
 message(STATUS "src: ${RES_DIR}/Palettes/MarsT1.gpl")
 message(STATUS "dst: ${DATA_DIR}/menupal.plt")
 set(RES_DIR ${CMAKE_CURRENT_LIST_DIR}/res)

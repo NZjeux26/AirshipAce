@@ -29,11 +29,20 @@ void menuGsCreate(void){
     s_pVpMain = vPortCreate(0, TAG_VPORT_VIEW, s_pMenuView, TAG_VPORT_BPP, 4, TAG_END);
     s_pMainBuffer = simpleBufferCreate(0,TAG_SIMPLEBUFFER_VPORT, s_pVpMain, TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_CLEAR, TAG_END);
     
-    //colour palette for the menu
-    s_pVpMain->pPalette[0] = 0x0000; //black
-    s_pVpMain->pPalette[1] = 0xFFFF; //White
+    // //colour palette for the menu
+    // s_pVpMain->pPalette[0] = 0x0000; //black
+    // s_pVpMain->pPalette[1] = 0xFFFF; //White
 
-    menufont = fontCreate("myacefont.fnt");
+    paletteLoad("data/menupal.plt",s_pVpMain->pPalette, 32); //load palette
+    
+    mBmBackground = bitmapCreateFromFile("data/menuBG.bm",0);//load the BG
+    for(UWORD x = 0; x < s_pMainBuffer->uBfrBounds.uwX; x+=16){//fills out the background
+        for(UWORD y = 0; y < s_pMainBuffer->uBfrBounds.uwY; y+=16){
+        blitCopyAligned(mBmBackground,x,y,s_pMainBuffer->pBack,x,y,16,16);
+        blitCopyAligned(mBmBackground,x,y,s_pMainBuffer->pFront,x,y,16,16);
+        }
+    } 
+    //menufont = fontCreate("myacefont.fnt");
 
     systemUnuse();
     viewLoad(s_pMenuView);
@@ -60,5 +69,6 @@ void menuGsLoop(void){
 
 void menuGsDestroy(void){
     systemUse();
+    bitmapDestroy(mBmBackground);
     viewDestroy(s_pMenuView);
 }
