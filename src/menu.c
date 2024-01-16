@@ -9,9 +9,7 @@
 #include <ace/utils/file.h>
 #include <ace/utils/font.h>
 #include <ace/utils/string.h>
-// #include <time.h>
-// #include <stdbool.h>
-// #include <stdlib.h>
+#include <ace/utils/palette.h>
 
 #define MENU_HEIGHT	(256-32) //y
 #define MENU_WIDTH	(320) //x
@@ -19,6 +17,7 @@
 static tView *s_pMenuView; //view for all viewports
 static tVPort *s_pVpMain;//viewport for the menu
 static tSimpleBufferManager *s_pMainBuffer;
+static tBitMap *mBmBackground;
 
 tFont *menufont;    //font
 tTextBitMap *menutextbitmap; //bitmap for the font
