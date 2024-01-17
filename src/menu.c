@@ -26,24 +26,24 @@ void menuGsCreate(void){
     //create view port and the display buffer for the main viewport
     s_pMenuView = viewCreate(0, TAG_VIEW_GLOBAL_PALETTE, 1, TAG_END);
 
-    s_pVpMain = vPortCreate(0, TAG_VPORT_VIEW, s_pMenuView, TAG_VPORT_BPP, 4, TAG_END);
+    s_pVpMain = vPortCreate(0, TAG_VPORT_VIEW, s_pMenuView, TAG_VPORT_BPP, 5, TAG_END);
     s_pMainBuffer = simpleBufferCreate(0,TAG_SIMPLEBUFFER_VPORT, s_pVpMain, TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_CLEAR, TAG_END);
-    
-    // //colour palette for the menu
-    // s_pVpMain->pPalette[0] = 0x0000; //black
-    // s_pVpMain->pPalette[1] = 0xFFFF; //White
 
     paletteLoad("data/menupal.plt",s_pVpMain->pPalette, 32); //load palette
     
     mBmBackground = bitmapCreateFromFile("data/menuBG.bm",0);//load the BG
-    for(UWORD x = 0; x < s_pMainBuffer->uBfrBounds.uwX; x+=16){//fills out the background
+     for(UWORD x = 0; x < s_pMainBuffer->uBfrBounds.uwX; x+=16){//fills out the background
         for(UWORD y = 0; y < s_pMainBuffer->uBfrBounds.uwY; y+=16){
-        blitCopyAligned(mBmBackground,x,y,s_pMainBuffer->pBack,x,y,16,16);
-        blitCopyAligned(mBmBackground,x,y,s_pMainBuffer->pFront,x,y,16,16);
+            blitCopyAligned(mBmBackground,x,y,s_pMainBuffer->pBack,x,y,16,16);
+            //blitCopyAligned(mBmBackground,x,y,s_pMainBuffer->pFront,x,y,16,16);//this line isn't actually needed
         }
-    } 
-    //menufont = fontCreate("myacefont.fnt");
+     } 
+    menufont = fontCreate("myacefont.fnt");
+    menutextbitmap = fontCreateTextBitMapFromStr(menufont, "AIRSHIPS");
+    fontDrawTextBitMap(s_pMainBuffer->pBack, menutextbitmap, MENU_WIDTH / 2 - 30, MENU_HEIGHT / 2, 30, FONT_COOKIE);
 
+    fontDestroyTextBitMap(menutextbitmap);
+    bitmapDestroy(mBmBackground);
     systemUnuse();
     viewLoad(s_pMenuView);
 }
