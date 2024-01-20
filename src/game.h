@@ -2,21 +2,42 @@
 #define _GAME_H_
 
 #include <ace/utils/file.h>
+#include <fixmath/fix16.h>
 
 void gameGsCreate(void);
 void gameGsLoop(void);
 void gameGsDestroy(void);
-void updateScore(void);
+void highScoreCheck(void);
 
-typedef struct g_obj {//struct for player parameters
-    short x;        //position X
-    short y;        //position Y
-    short w;        //Rectangle width
-    short h;        //Rectangle height
-    short xvel;     //x velocity
-    short yvel;     //y velocity
-    short health;   //health
-    short colour;    
-} g_obj;
+typedef struct {//struct for player parameters
+    fix16_t x;              //position X
+    fix16_t y;              //position Y
+    short bw;               //Rectangle width **This and the height will be what's actually drawn on screen and is also the hitbox
+    short bh;               //Rectangle height
+    fix16_t length;         //Length of the airship for calculations
+    fix16_t diameter;       //Diameter of the airship for calculations
+    fix16_t volume;        //volume of the airships envolpee
+    int dryMass;            //Dry mass of the airship
+    int wetMass;            //Wet mass of the airship, this includes fuel, weapons, ammo, crew, cargo
+    int cargoMass;          //Cargo mass
+    short crew;             //amount of crew
+    short crewMass;         //amount of crew in tons
+    int weaponMass;         //mass of th weapon loadout
+    short weaponHardpoints; //amount of hardpoints the ship has for weapons
+    fix16_t xvel;           //x velocity
+    fix16_t yvel;           //y velocity
+    short health;           //health
+} airship_obj;
+
+typedef struct{
+    short pressure; //in pascals
+    fix16_t denisty; //denisty in kg/m^3
+} Atmosphere;
+
+typedef struct{
+    short buoyancy_force; //force in newtons
+    short mass_lifted;
+    fix16_t accerleration; 
+} Buoyancy_data;
 
 #endif // _GAME_H_

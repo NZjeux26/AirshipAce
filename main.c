@@ -5,12 +5,12 @@
 #include <ace/managers/key.h>
 #include <ace/managers/state.h>
 // Without it compiler will yell about undeclared gameGsCreate etc
-//#include "src/game.h"
+#include "src/game.h"
 #include "src/menu.h"
 #include "src/states.h"
 
 tStateManager *g_pStateManager;
-//tState *g_pGameState;
+tState *g_pGameState;
 tState *g_pMenuState;
 
 void genericCreate(void) {
@@ -19,9 +19,9 @@ void genericCreate(void) {
   timerCreate();
   // Initialize gamestate
   g_pStateManager = stateManagerCreate();
-  //g_pGameState = stateCreate(gameGsCreate, gameGsLoop, gameGsDestroy, 0, 0);
+  g_pGameState = stateCreate(gameGsCreate, gameGsLoop, gameGsDestroy, 0, 0);
   g_pMenuState = stateCreate(menuGsCreate, menuGsLoop, menuGsDestroy, 0, 0);
-  statePush(g_pStateManager, g_pMenuState);
+  statePush(g_pStateManager, g_pGameState);
 }
 
 void genericProcess(void) {
@@ -34,7 +34,7 @@ void genericProcess(void) {
 void genericDestroy(void) {
   // Here goes your cleanup code
   stateManagerDestroy(g_pStateManager);
-  stateDestroy(g_pMenuState);
+  stateDestroy(g_pGameState);
   keyDestroy(); // We don't need it anymore
   logWrite("Goodbye, Amiga!\n");
 }

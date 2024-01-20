@@ -1,5 +1,6 @@
 #include "menu.h"
 #include "states.h"
+#include "game.h"
 #include <ace/managers/key.h>
 #include <ace/managers/game.h>
 #include <ace/managers/system.h>
@@ -53,18 +54,18 @@ void menuGsLoop(void){
         logWrite("getting outta here!\n");
         gameExit();
     }
-    // else{
-    //     //logWrite("Looking at that else!\n");
-    //     if(keyCheck(KEY_Y)){
-    //     logWrite("Going back to the Game!\n");
-    //     stateChange(g_pStateManager, g_pMenuState);
-    //     logWrite("Switching!\n");
-    //     return;
-    //     }
-    //     copProcessBlocks();
-    //     systemIdleBegin();
-    //     vPortWaitUntilEnd(s_pVpMain);
-    // }
+    else{
+        //logWrite("Looking at that else!\n");
+        if(keyCheck(KEY_Y)){
+        logWrite("Going back to the Game!\n");
+        stateChange(g_pStateManager, g_pGameState);
+        logWrite("Switching!\n");
+        return;
+        }
+        copProcessBlocks();
+        systemIdleBegin();
+        vPortWaitUntilEnd(s_pVpMain);
+    }
 }
 
 void menuGsDestroy(void){
