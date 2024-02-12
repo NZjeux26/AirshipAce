@@ -7,16 +7,17 @@
 void gameGsCreate(void);
 void gameGsLoop(void);
 void gameGsDestroy(void);
-void highScoreCheck(void);
 
 typedef struct {//struct for player parameters
-    fix16_t x;              //position X
-    fix16_t y;              //position Y
-    short bw;               //Rectangle width **This and the height will be what's actually drawn on screen and is also the hitbox
-    short bh;               //Rectangle height
     fix16_t length;         //Length of the airship for calculations
     fix16_t diameter;       //Diameter of the airship for calculations
-    fix16_t volume;        //volume of the airships envolpee
+    short bw;               //Rectangle width **This and the height will be what's actually drawn on screen and is also the hitbox
+    short bh;               //Rectangle height
+    fix16_t volume;         //volume of the airships envolpee
+    fix16_t cd;
+    fix16_t frontal_area;
+    fix16_t lateral_area;
+    int ballest;
     int dryMass;            //Dry mass of the airship
     int wetMass;            //Wet mass of the airship, this includes fuel, weapons, ammo, crew, cargo
     int cargoMass;          //Cargo mass
@@ -26,18 +27,30 @@ typedef struct {//struct for player parameters
     short weaponHardpoints; //amount of hardpoints the ship has for weapons
     fix16_t xvel;           //x velocity
     fix16_t yvel;           //y velocity
+    fix16_t x;              //position X
+    fix16_t y;              //position Y
     short health;           //health
 } airship_obj;
 
 typedef struct{
-    short pressure; //in pascals
+    fix16_t pressure; //in pascals
     fix16_t denisty; //denisty in kg/m^3
+    fix16_t temperature; //temperature in degrees
 } Atmosphere;
 
 typedef struct{
-    short buoyancy_force; //force in newtons
+    fix16_t buoyancy_force; //force in newtons
     short mass_lifted;
     fix16_t accerleration; 
 } Buoyancy_data;
+
+typedef struct{
+    int mass;
+    fix16_t fuel_flow;
+    short prop_diameter;
+    fix16_t prop_area;
+    fix16_t prop_efficiency;
+    short thrust;
+} Engine;
 
 #endif // _GAME_H_
