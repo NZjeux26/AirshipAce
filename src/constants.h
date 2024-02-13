@@ -17,5 +17,10 @@ typedef struct{
     fix16_t molar_mass_of_hydrogen; // kg/mol
 } Constants;
 
+typedef struct{
+    short x;
+    short y;
+} Vector2D;
+
 
 #endif

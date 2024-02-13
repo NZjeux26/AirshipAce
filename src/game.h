@@ -3,6 +3,7 @@
 
 #include <ace/utils/file.h>
 #include <fixmath/fix16.h>
+#include "Constants.h"
 
 void gameGsCreate(void);
 void gameGsLoop(void);
@@ -22,13 +23,12 @@ typedef struct {//struct for player parameters
     int wetMass;            //Wet mass of the airship, this includes fuel, weapons, ammo, crew, cargo
     int cargoMass;          //Cargo mass
     short crew;             //amount of crew
-    short crewMass;         //amount of crew in tons
+    int crewMass;         //amount of crew in tons
     int weaponMass;         //mass of th weapon loadout
     short weaponHardpoints; //amount of hardpoints the ship has for weapons
     fix16_t xvel;           //x velocity
     fix16_t yvel;           //y velocity
-    fix16_t x;              //position X
-    fix16_t y;              //position Y
+    Vector2D pos;           //Position
     short health;           //health
 } airship_obj;
 
