@@ -13,7 +13,7 @@ Constants constants_init() {
     constants.gravity_on_earth = F16(9.80665);
     constants.air_density_sea_level = F16(1.225);
     constants.hydrogen_density = F16(0.008375);
-    constants.standard_pressure_sea_level = F16(101325);
+    constants.standard_pressure_sea_level = F16(1013.25);//F16(101325); //2147483647
     constants.gas_constant = F16(8.3144598);
     constants.temperature_lapse_rate = F16(0.0065);
     constants.standard_temperature_at_sea_level = F16(15);
@@ -31,9 +31,7 @@ void create_atmosphere(Atmosphere *atmosphere, Constants *constants){
 }
 //function to update the temperature based on the standard lapse rate given a height.
 void update_temp(Atmosphere *atmosphere, Constants *constants, Vector2D pos ){
-    fix16_t lapse_rate = fix16_mul(constants->temperature_lapse_rate,fix16_from_int(pos.y));
-    atmosphere->temperature = fix16_sub(atmosphere->temperature,lapse_rate);
-  
+    atmosphere->temperature = fix16_sub(constants->standard_temperature_at_sea_level, fix16_mul(constants->temperature_lapse_rate, fix16_from_int(pos.y)));
 }
 //this is missing the neg one on the gravity_on_earth like the python version
 void update_pressure(Atmosphere *atmosphere, Constants *constants, Vector2D pos){

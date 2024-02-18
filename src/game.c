@@ -117,17 +117,18 @@ void gameGsCreate(void) {
   fontDrawTextBitMap(s_pScoreBuffer->pBack, textbitmap, 0,20, 5, FONT_COOKIE);
   
   //create the atmosphere
-  constants_init(); //setup the constants
+  constants = constants_init(); //setup the constants
   create_atmosphere(&atmosphere,&constants); //create the three parameters with the sealevel constants
-  logWrite("Check Atmo Temp1: %d\n", fix16_to_int(atmosphere.temperature));
+  logWrite("Temp1: %d\n", fix16_to_int(atmosphere.temperature));
+  logWrite("Pressure1: %d\n", fix16_to_int(atmosphere.pressure));
   //create the airship
-  airship.pos = createVector2D(PLAYFIELD_WIDTH / 2, 0);
+  airship.pos = createVector2D(PLAYFIELD_WIDTH / 2, 100);
   airship.bw = 14;
   airship.bh = 14;
   airship.length = 23;
   airship.diameter = 3;
   airship.volume = calculate_volume(airship.length,airship.diameter);
-  airship.dryMass = 196;
+  airship.dryMass = 150;
 
   //convert the score from int to string for drawing
   stringDecimalFromULong(gSCORE, scorebuffer);
@@ -157,15 +158,19 @@ void gameGsLoop(void) {
   //recheck the atmosphere, force calculations
   update_temp(&atmosphere,&constants, airship.pos);
   update_pressure(&atmosphere,&constants, airship.pos);
-  update_density(&atmosphere, &constants);
-  logWrite("Check Atmo Temp: %d\n", fix16_to_int(atmosphere.temperature));
-  fix16_t bforce = cal_buoyancy_force(&constants, atmosphere.denisty, airship.volume);
-  fix16_t force_gravity = cal_gravity_force(&constants, airship.dryMass);
+  // update_density(&atmosphere, &constants);
 
-  fix16_t net_force_y = fix16_sub(bforce,force_gravity);
-  fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
+  logWrite("Temp: %d\n", fix16_to_int(atmosphere.temperature));
+  logWrite("Pressure: %d\n", fix16_to_int(atmosphere.temperature));
+  // fix16_t bforce = cal_buoyancy_force(&constants, atmosphere.denisty, airship.volume);
+  // fix16_t force_gravity = cal_gravity_force(&constants, airship.dryMass);
 
-  airship.pos.y += fix16_to_int(acceleration_y);
+  // fix16_t net_force_y = fix16_sub(bforce,force_gravity);
+  // fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
+  // logWrite("Net = %d\n", fix16_to_int(net_force_y));
+  // logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
+  // airship.pos.y += fix16_to_int(acceleration_y);
+  // logWrite("AirshipPOS %d\n", airship.pos.y);
   //controls to move the player
   if(keyCheck(KEY_SPACE)){  //move player up
   
