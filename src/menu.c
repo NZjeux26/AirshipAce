@@ -39,7 +39,7 @@ void menuGsCreate(void){
             //blitCopyAligned(mBmBackground,x,y,s_pMainBuffer->pFront,x,y,16,16);//this line isn't actually needed
         }
      } 
-    menufont = fontCreate("myacefont.fnt");
+    menufont = fontCreate("data/myacefont.fnt");
     menutextbitmap = fontCreateTextBitMapFromStr(menufont, "AIRSHIPS");
     fontDrawTextBitMap(s_pMainBuffer->pBack, menutextbitmap, MENU_WIDTH / 2 - 30, MENU_HEIGHT / 2, 30, FONT_COOKIE);
 

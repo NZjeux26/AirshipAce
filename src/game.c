@@ -1,4 +1,5 @@
 #include "game.h"
+#include "atmosphere.h"
 #include "states.h"
 #include <ace/managers/key.h>
 #include <ace/managers/game.h>
@@ -35,7 +36,7 @@ static tVPort *s_pVpMain; // Viewport for playfield
 static tSimpleBufferManager *s_pMainBuffer;
 static tRandManager *s_pRandManager;
 
-static tBitMap *pBmBackground;
+//static tBitMap *pBmBackground;
 
 tFont *fallfontsmall; //global for font
 tTextBitMap *scoretextbitmap;//global for score text
@@ -48,6 +49,9 @@ int g_highScore = 0; //needs to be assigned prior to initialization
 ULONG startTime;
 UBYTE g_scored = false;
 
+airship_obj airship;
+Atmosphere atmosphere;
+Constants constants;
 
 void gameGsCreate(void) {
   tRayPos sRayPos = getRayPos();
@@ -80,14 +84,14 @@ void gameGsCreate(void) {
 
   paletteLoad("data/menupal.plt", s_pVpScore->pPalette, 32); //replaces palette
   
-  pBmBackground = bitmapCreateFromFile("data/gametestBG.bm",0);//load the background
+  // pBmBackground = bitmapCreateFromFile("data/menuBG.bm",0);//load the background
   
-  for(UWORD x = 0; x < s_pMainBuffer->uBfrBounds.uwX; x+=16){//fills out the background
-    for(UWORD y = 0; y < s_pMainBuffer->uBfrBounds.uwY; y+=16){
-      blitCopyAligned(pBmBackground,x,y,s_pMainBuffer->pBack,x,y,16,16);
-      blitCopyAligned(pBmBackground,x,y,s_pMainBuffer->pFront,x,y,16,16);
-    }
-  }
+  // for(UWORD x = 0; x < s_pMainBuffer->uBfrBounds.uwX; x+=16){//fills out the background
+  //   for(UWORD y = 0; y < s_pMainBuffer->uBfrBounds.uwY; y+=16){
+  //     blitCopyAligned(pBmBackground,x,y,s_pMainBuffer->pBack,x,y,16,16);
+  //     blitCopyAligned(pBmBackground,x,y,s_pMainBuffer->pFront,x,y,16,16);
+  //   }
+  // }
  
   // Draw line separating score VPort and main VPort, leave one line blank after it
   blitLine(
@@ -102,7 +106,7 @@ void gameGsCreate(void) {
   char i_highScore[20]; //buffer string to hold the highscore
   stringDecimalFromULong(g_highScore, i_highScore); //convert to short
 
-  fallfontsmall = fontCreate("myacefont.fnt");//create font
+  fallfontsmall = fontCreate("data/myacefont.fnt");//create font
 
   tTextBitMap *highscorebitmap = fontCreateTextBitMapFromStr(fallfontsmall, "High Score ");//create the bitmap with HIGHSCORE
   fontDrawTextBitMap(s_pScoreBuffer->pBack, highscorebitmap, 0,10, 29, FONT_COOKIE); //draw the text
@@ -112,6 +116,19 @@ void gameGsCreate(void) {
   tTextBitMap *textbitmap = fontCreateTextBitMapFromStr(fallfontsmall, "Score ");
   fontDrawTextBitMap(s_pScoreBuffer->pBack, textbitmap, 0,20, 5, FONT_COOKIE);
   
+  //create the atmosphere
+  constants_init(); //setup the constants
+  create_atmosphere(&atmosphere,&constants); //create the three parameters with the sealevel constants
+  logWrite("Check Atmo Temp1: %d\n", fix16_to_int(atmosphere.temperature));
+  //create the airship
+  airship.pos = createVector2D(PLAYFIELD_WIDTH / 2, 0);
+  airship.bw = 14;
+  airship.bh = 14;
+  airship.length = 23;
+  airship.diameter = 3;
+  airship.volume = calculate_volume(airship.length,airship.diameter);
+  airship.dryMass = 196;
+
   //convert the score from int to string for drawing
   stringDecimalFromULong(gSCORE, scorebuffer);
   scoretextbitmap = fontCreateTextBitMapFromStr(fallfontsmall, scorebuffer); //redo bitmap
@@ -129,8 +146,27 @@ void gameGsLoop(void) {
   if(keyCheck(KEY_ESCAPE)) {
     gameExit();
   }
-
+  // undrawthe airship
+  blitRect(
+      s_pMainBuffer->pBack,
+      airship.pos.x, airship.pos.y,
+      airship.bw, airship.bh, 0
+      );
   //controls
+
+  //recheck the atmosphere, force calculations
+  update_temp(&atmosphere,&constants, airship.pos);
+  update_pressure(&atmosphere,&constants, airship.pos);
+  update_density(&atmosphere, &constants);
+  logWrite("Check Atmo Temp: %d\n", fix16_to_int(atmosphere.temperature));
+  fix16_t bforce = cal_buoyancy_force(&constants, atmosphere.denisty, airship.volume);
+  fix16_t force_gravity = cal_gravity_force(&constants, airship.dryMass);
+
+  fix16_t net_force_y = fix16_sub(bforce,force_gravity);
+  fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
+
+  airship.pos.y += fix16_to_int(acceleration_y);
+  //controls to move the player
   if(keyCheck(KEY_SPACE)){  //move player up
   
   }
@@ -139,7 +175,12 @@ void gameGsLoop(void) {
   }
 
   //**Draw things**
-  
+  //redraw the airship.
+  blitRect(
+        s_pMainBuffer->pBack, 
+        airship.pos.x, airship.pos.y,
+        airship.bw, airship.bh, 9
+        );
   viewProcessManagers(s_pView);//might be wrong
   copProcessBlocks();
   systemIdleBegin();

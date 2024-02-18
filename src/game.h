@@ -3,15 +3,15 @@
 
 #include <ace/utils/file.h>
 #include <fixmath/fix16.h>
-#include "Constants.h"
+#include "atmosphere.h"
 
 void gameGsCreate(void);
 void gameGsLoop(void);
 void gameGsDestroy(void);
 
 typedef struct {//struct for player parameters
-    fix16_t length;         //Length of the airship for calculations
-    fix16_t diameter;       //Diameter of the airship for calculations
+    short length;         //Length of the airship for calculations
+    short diameter;       //Diameter of the airship for calculations
     short bw;               //Rectangle width **This and the height will be what's actually drawn on screen and is also the hitbox
     short bh;               //Rectangle height
     fix16_t volume;         //volume of the airships envolpee
@@ -23,26 +23,14 @@ typedef struct {//struct for player parameters
     int wetMass;            //Wet mass of the airship, this includes fuel, weapons, ammo, crew, cargo
     int cargoMass;          //Cargo mass
     short crew;             //amount of crew
-    int crewMass;         //amount of crew in tons
+    int crewMass;           //amount of crew in tons
     int weaponMass;         //mass of th weapon loadout
     short weaponHardpoints; //amount of hardpoints the ship has for weapons
     fix16_t xvel;           //x velocity
     fix16_t yvel;           //y velocity
-    Vector2D pos;           //Position
+    Vector2D pos;        //Position
     short health;           //health
 } airship_obj;
-
-typedef struct{
-    fix16_t pressure; //in pascals
-    fix16_t denisty; //denisty in kg/m^3
-    fix16_t temperature; //temperature in degrees
-} Atmosphere;
-
-typedef struct{
-    fix16_t buoyancy_force; //force in newtons
-    short mass_lifted;
-    fix16_t accerleration; 
-} Buoyancy_data;
 
 typedef struct{
     int mass;
