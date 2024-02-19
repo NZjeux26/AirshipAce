@@ -13,7 +13,7 @@ Constants constants_init() {
     constants.gravity_on_earth = F16(9.80665);
     constants.air_density_sea_level = F16(1.225);
     constants.hydrogen_density = F16(0.008375);
-    constants.standard_pressure_sea_level = F16(1013.25);//F16(101325); //2147483647
+    constants.standard_pressure_sea_level = F16(1013.25);//using hectapascals instead//F16(101325); //2147483647
     constants.gas_constant = F16(8.3144598);
     constants.temperature_lapse_rate = F16(0.0065);
     constants.standard_temperature_at_sea_level = F16(15);
@@ -42,19 +42,19 @@ void update_pressure(Atmosphere *atmosphere, Constants *constants, Vector2D pos)
 
     atmosphere->pressure = pressure;
 }
-
+//with using hPa you have to multiply the resulting density by 100
 void update_density(Atmosphere *atmosphere, Constants *constants){
     fix16_t temp_kelvin = fix16_add(atmosphere->temperature,fix16_from_int(273.15));
     fix16_t density = fix16_div(
                         fix16_mul(atmosphere->pressure, constants->molar_mass_of_air),
                         fix16_mul(constants->gas_constant, temp_kelvin)
                         );
-    atmosphere->denisty = density;
+    atmosphere->denisty = fix16_mul(density, fix16_from_int(100));
 }
 
 fix16_t cal_buoyancy_force(Constants *constants, fix16_t density, fix16_t volume){
     fix16_t bforce = fix16_mul(fix16_sub(density, constants->hydrogen_density),
-                    fix16_mul(constants->gravity_on_earth, volume));
+                     fix16_mul(constants->gravity_on_earth, volume));
     return bforce;
 }
 //might be able to replace these fix16_t values with shorts. 
