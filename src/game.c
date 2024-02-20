@@ -129,10 +129,10 @@ void gameGsCreate(void) {
   airship.length = 23;
   airship.diameter = 3;
   airship.volume = calculate_volume(airship.length,airship.diameter);
-  airship.dryMass = 150;
-
+  airship.dryMass = 194;
+  logWrite("Airship Volume: %d\n",fix16_to_int(airship.volume));
   //convert the score from int to string for drawing
-  stringDecimalFromULong(gSCORE, scorebuffer);
+  // stringDecimalFromULong(gSCORE, scorebuffer);
   scoretextbitmap = fontCreateTextBitMapFromStr(fallfontsmall, scorebuffer); //redo bitmap
   gSCORE = 0;
   
@@ -163,16 +163,22 @@ void gameGsLoop(void) {
 
   logWrite("Temp: %d\n", fix16_to_int(atmosphere.temperature));
   logWrite("Pressure: %d\n", fix16_to_int(atmosphere.pressure ));
-  logWrite("Density1: %d\n", fix16_to_int(atmosphere.denisty));
-   fix16_t bforce = cal_buoyancy_force(&constants, atmosphere.denisty, airship.volume);
-   fix16_t force_gravity = cal_gravity_force(&constants, airship.dryMass);
+  logWrite("Density: %d\n", fix16_to_int(atmosphere.denisty));
+  //calculate the buoycany force for this altitude
+  fix16_t bforce = cal_buoyancy_force(&constants, atmosphere.denisty, airship.volume);
+  fix16_t force_gravity = cal_gravity_force(&constants, airship.dryMass);
+  //calculate the netforce acting on the ship and the acceleration from that
+  fix16_t net_force_y = fix16_sub(bforce,force_gravity);
+  fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
 
-   fix16_t net_force_y = fix16_sub(bforce,force_gravity);
-   fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
-   logWrite("Net = %d\n", fix16_to_int(net_force_y));
-   logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
-   airship.pos.y += fix16_to_int(acceleration_y);
-   logWrite("AirshipPOS %d\n", airship.pos.y);
+  logWrite("Net = %d\n", fix16_to_int(net_force_y));
+  logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
+
+  //add that acceleration to the velocity
+  airship.yvel += acceleration_y;
+  airship.pos.y += fix16_to_int(airship.yvel); // look to change this as Kain suggested and have another Y value for Y pos.
+  logWrite("AirshipPOS %d\n", airship.pos.y);
+
   //controls to move the player
   if(keyCheck(KEY_SPACE)){  //move player up
   
@@ -184,10 +190,11 @@ void gameGsLoop(void) {
   //**Draw things**
   //redraw the airship.
   blitRect(
-        s_pMainBuffer->pBack, 
-        airship.pos.x, airship.pos.y,
-        airship.bw, airship.bh, 9
-        );
+      s_pMainBuffer->pBack, 
+      airship.pos.x, airship.pos.y,
+      airship.bw, airship.bh, 9
+      );
+
   viewProcessManagers(s_pView);//might be wrong
   copProcessBlocks();
   systemIdleBegin();

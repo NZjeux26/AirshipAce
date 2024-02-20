@@ -64,8 +64,10 @@ fix16_t cal_gravity_force(Constants *constants, short mass){
 }
 
 fix16_t calculate_volume(short length, short diameter) {
-    // Perform the volume calculation
-    // For example, assuming the airship is a cylinder
-    // Volume = pi * (diameter / 2)^2 * length
-    return fix16_mul(fix16_mul(fix16_pi, fix16_mul(diameter / 2, diameter / 2)), length);
+    // Volume = pi * r^2 * length(height)
+    fix16_t radius = fix16_div(fix16_from_int(diameter), fix16_from_int(2));
+    fix16_t radiusSq = fix16_mul(radius, radius);
+    fix16_t volume = fix16_mul(fix16_pi,fix16_mul(radiusSq,fix16_from_int(length)));
+    return volume;
+    
 }
