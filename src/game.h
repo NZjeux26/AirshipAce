@@ -10,8 +10,8 @@ void gameGsLoop(void);
 void gameGsDestroy(void);
 
 typedef struct {//struct for player parameters
-    short length;         //Length of the airship for calculations
-    short diameter;       //Diameter of the airship for calculations
+    fix16_t length;         //Length of the airship for calculations
+    fix16_t diameter;       //Diameter of the airship for calculations
     short bw;               //Rectangle width **This and the height will be what's actually drawn on screen and is also the hitbox
     short bh;               //Rectangle height
     fix16_t volume;         //volume of the airships envolpee

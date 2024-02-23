@@ -41,7 +41,7 @@ void create_atmosphere(Atmosphere *atmosphere, Constants *constants);
 void update_temp(Atmosphere *atmosphere, Constants *constants, Vector2D pos);
 void update_pressure(Atmosphere *atmosphere, Constants *constants, Vector2D pos);
 void update_density(Atmosphere *atmosphere, Constants *constants);
-fix16_t calculate_volume(short length, short diameter);
+fix16_t calculate_volume(fix16_t length, fix16_t diameter);
 fix16_t cal_buoyancy_force(Constants *constants, fix16_t density, fix16_t volume);
 fix16_t cal_gravity_force(Constants *constants, short mass);
 #endif

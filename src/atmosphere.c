@@ -63,11 +63,11 @@ fix16_t cal_gravity_force(Constants *constants, short mass){
     return gravity_force;
 }
 
-fix16_t calculate_volume(short length, short diameter) {
+fix16_t calculate_volume(fix16_t length, fix16_t diameter) {
     // Volume = pi * r^2 * length(height)
-    fix16_t radius = fix16_div(fix16_from_int(diameter), fix16_from_int(2));
-    fix16_t radiusSq = fix16_mul(radius, radius);
-    fix16_t volume = fix16_mul(fix16_pi,fix16_mul(radiusSq,fix16_from_int(length)));
+    fix16_t radius = fix16_div(diameter, fix16_from_int(2));
+    fix16_t radiusSq = fix16_sq(radius);
+    fix16_t volume = fix16_mul(fix16_pi,fix16_mul(radiusSq,length));
     return volume;
     
 }

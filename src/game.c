@@ -45,6 +45,7 @@ tTextBitMap *scoretextbitmap;//global for score text
 char scorebuffer[20];
 int gSCORE = 0;
 int g_highScore = 0; //needs to be assigned prior to initialization
+int y_pos = 0;
 
 ULONG startTime;
 UBYTE g_scored = false;
@@ -78,9 +79,13 @@ void gameGsCreate(void) {
   TAG_END);
     s_pMainBuffer = simpleBufferCreate(0,
     TAG_SIMPLEBUFFER_VPORT, s_pVpMain,
-    TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_INTERLEAVED,
-    TAG_SIMPLEBUFFER_IS_DBLBUF, 1, //add this line in for double buffering
+      TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_CLEAR,
     TAG_END);
+    // s_pMainBuffer = simpleBufferCreate(0,
+    // TAG_SIMPLEBUFFER_VPORT, s_pVpMain,
+    // TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_INTERLEAVED,
+    // TAG_SIMPLEBUFFER_IS_DBLBUF, 1, //add this line in for double buffering
+    // TAG_END);
 
   paletteLoad("data/menupal.plt", s_pVpScore->pPalette, 32); //replaces palette
   
@@ -126,10 +131,11 @@ void gameGsCreate(void) {
   airship.pos = createVector2D(PLAYFIELD_WIDTH / 2, 0);
   airship.bw = 14;
   airship.bh = 14;
-  airship.length = 23;
-  airship.diameter = 3;
+  airship.length = F16(23.25);
+  airship.diameter = F16(3.05);
   airship.volume = calculate_volume(airship.length,airship.diameter);
-  airship.dryMass = 194;
+  airship.dryMass = 202;
+  
   logWrite("Airship Volume: %d\n",fix16_to_int(airship.volume));
   //convert the score from int to string for drawing
   // stringDecimalFromULong(gSCORE, scorebuffer);
@@ -148,6 +154,7 @@ void gameGsLoop(void) {
   if(keyCheck(KEY_ESCAPE)) {
     gameExit();
   }
+  
   // undrawthe airship
   blitRect(
       s_pMainBuffer->pBack,
@@ -168,23 +175,23 @@ void gameGsLoop(void) {
   fix16_t bforce = cal_buoyancy_force(&constants, atmosphere.denisty, airship.volume);
   fix16_t force_gravity = cal_gravity_force(&constants, airship.dryMass);
   //calculate the netforce acting on the ship and the acceleration from that
-  fix16_t net_force_y = fix16_sub(bforce,force_gravity);
+  fix16_t net_force_y = fix16_sub(bforce,force_gravity);//some of these fix16 sub/add might need replaced 
   fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
-
+  logWrite("Bforce: %d\n", fix16_to_int(bforce));
   logWrite("Net = %d\n", fix16_to_int(net_force_y));
   logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
 
   //add that acceleration to the velocity
-  airship.yvel += acceleration_y;
+  airship.yvel = fix16_add(airship.yvel, acceleration_y);//+= acceleration_y;
   airship.pos.y += fix16_to_int(airship.yvel); // look to change this as Kain suggested and have another Y value for Y pos.
   logWrite("AirshipPOS %d\n", airship.pos.y);
 
   //controls to move the player
-  if(keyCheck(KEY_SPACE)){  //move player up
-  
+  if(keyCheck(KEY_D)){  //move player up
+    airship.pos.x = MIN(airship.pos.x + PADDLE_SPEED, 275);
   }
-  else{
-   
+  if(keyCheck(KEY_A)){  //move player up
+    airship.pos.x = MAX(airship.pos.x - PADDLE_SPEED, 0);
   }
 
   //**Draw things**
