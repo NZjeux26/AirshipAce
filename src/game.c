@@ -28,6 +28,7 @@
 //AMiga Pal 320x256
 #define PLAYFIELD_HEIGHT (256-32) //32 for the top viewport height
 #define PLAYFIELD_WIDTH (320)
+#define FRAME_SEC 20
 
 static tView *s_pView; // View containing all the viewports
 static tVPort *s_pVpScore; // Viewport for score
@@ -46,7 +47,8 @@ char scorebuffer[20];
 int gSCORE = 0;
 int g_highScore = 0; //needs to be assigned prior to initialization
 int y_pos = 0;
-
+short ypos = 0;
+short xpos = 0;
 ULONG startTime;
 UBYTE g_scored = false;
 
@@ -128,7 +130,7 @@ void gameGsCreate(void) {
   logWrite("Pressure1: %d\n", fix16_to_int(atmosphere.pressure));
   logWrite("Density1: %d\n", fix16_to_int(atmosphere.denisty));
   //create the airship
-  airship.pos = createVector2D(PLAYFIELD_WIDTH / 2, 0);
+  airship.pos = createVector2D(F16(PLAYFIELD_WIDTH / 2), F16(0));
   airship.bw = 14;
   airship.bh = 14;
   airship.length = F16(23.25);
@@ -148,17 +150,18 @@ void gameGsCreate(void) {
   // Load the view
   viewLoad(s_pView);
 }
-
+ULONG last_frame = 0;
 void gameGsLoop(void) {
   // This will loop every frame
   if(keyCheck(KEY_ESCAPE)) {
     gameExit();
   }
-  
+  ULONG current_time = timerGet();
+  ULONG dt = timerGetDelta(last_frame, current_time);
   // undrawthe airship
   blitRect(
       s_pMainBuffer->pBack,
-      airship.pos.x, airship.pos.y,
+      xpos, ypos,
       airship.bw, airship.bh, 0
       );
   //controls
@@ -182,9 +185,13 @@ void gameGsLoop(void) {
   logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
 
   //add that acceleration to the velocity
-  airship.yvel = fix16_add(airship.yvel, acceleration_y);//+= acceleration_y;
-  airship.pos.y += fix16_to_int(airship.yvel); // look to change this as Kain suggested and have another Y value for Y pos.
-  logWrite("AirshipPOS %d\n", airship.pos.y);
+  airship.yvel = fix16_add(airship.yvel, acceleration_y);
+  //airship.yvel = fix16_add(airship.yvel, fix16_mul(acceleration_y, fix16_from_int(dt / 1000)));
+  airship.pos.y = fix16_add(airship.pos.y, airship.yvel);
+  //airship.pos.y = fix16_add(airship.pos.y, fix16_mul(airship.yvel, fix16_from_int(dt / 1000)));
+  ypos = fix16_to_int(airship.pos.y); //this needed to be jsut assigned and not added which was why is was fucking off to the moon
+  xpos = fix16_to_int(airship.pos.x);
+  logWrite("AirshipPOS %d\n", ypos);
 
   //controls to move the player
   if(keyCheck(KEY_D)){  //move player up
@@ -198,10 +205,10 @@ void gameGsLoop(void) {
   //redraw the airship.
   blitRect(
       s_pMainBuffer->pBack, 
-      airship.pos.x, airship.pos.y,
+      xpos, ypos,
       airship.bw, airship.bh, 9
       );
-
+  last_frame = current_time;
   viewProcessManagers(s_pView);//might be wrong
   copProcessBlocks();
   systemIdleBegin();

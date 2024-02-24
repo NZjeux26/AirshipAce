@@ -1,7 +1,7 @@
 #include <fixmath/fix16.h>
 #include "game.h"
 
-Vector2D createVector2D(short x, short y){
+Vector2D createVector2D(fix16_t x, fix16_t y){
     Vector2D vec;
     vec.x = x; 
     vec.y = y;
@@ -31,11 +31,11 @@ void create_atmosphere(Atmosphere *atmosphere, Constants *constants){
 }
 //function to update the temperature based on the standard lapse rate given a height.
 void update_temp(Atmosphere *atmosphere, Constants *constants, Vector2D pos ){
-    atmosphere->temperature = fix16_sub(constants->standard_temperature_at_sea_level, fix16_mul(constants->temperature_lapse_rate, fix16_from_int(pos.y)));
+    atmosphere->temperature = fix16_sub(constants->standard_temperature_at_sea_level, fix16_mul(constants->temperature_lapse_rate, pos.y));
 }
 //this is missing the neg one on the gravity_on_earth like the python version
 void update_pressure(Atmosphere *atmosphere, Constants *constants, Vector2D pos){
-    fix16_t altitude = fix16_from_int(pos.y);
+    fix16_t altitude = pos.y;
     fix16_t temp_kelvin = fix16_add(atmosphere->temperature,fix16_from_int(273.15));
     fix16_t exponent = fix16_div(fix16_mul(fix16_mul(-constants->gravity_on_earth, constants->molar_mass_of_air), altitude), fix16_mul(constants->gas_constant, temp_kelvin));
     fix16_t pressure = fix16_mul(constants->standard_pressure_sea_level, fix16_exp(exponent));

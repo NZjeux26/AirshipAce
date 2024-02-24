@@ -31,11 +31,11 @@ typedef struct{
 } Buoyancy_data;
 
 typedef struct{
-    short x;
-    short y;
+    fix16_t x;
+    fix16_t y;
 } Vector2D;
 
-Vector2D createVector2D(short x, short y);
+Vector2D createVector2D(fix16_t x, fix16_t y);
 Constants constants_init();
 void create_atmosphere(Atmosphere *atmosphere, Constants *constants);
 void update_temp(Atmosphere *atmosphere, Constants *constants, Vector2D pos);
