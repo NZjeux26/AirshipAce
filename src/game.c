@@ -146,19 +146,24 @@ void gameGsCreate(void) {
   gSCORE = 0;
   
   startTime = timerGet();
-  frame_delay = 1000 / 10;
+  frame_delay = 1000 / 60;
   systemUnuse();
   // Load the view
   viewLoad(s_pView);
 }
 ULONG last_frame = 0;
 void gameGsLoop(void) {
-  ULONG last_frame_start = timerGet();
+  
   // This will loop every frame
   if(keyCheck(KEY_ESCAPE)) {
     gameExit();
   }
-
+   ULONG current_time = timerGet();
+  // //fix16_t dt = fix16_div(fix16_to_int(50), fix16_to_int(1000));
+  ULONG dt = timerGetDelta(last_frame, current_time);
+  if(dt < frame_delay){
+    timerWaitUs((frame_delay - dt) * 1000);
+  }
   // undrawthe airship
   blitRect(
       s_pMainBuffer->pBack,
@@ -190,10 +195,10 @@ void gameGsLoop(void) {
   logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
 
   //add that acceleration to the velocity
-  airship.yvel = fix16_add(airship.yvel, acceleration_y);
-  //airship.yvel = fix16_add(airship.yvel, fix16_mul(acceleration_y, fix16_from_int(dt)));
+  //airship.yvel = fix16_add(airship.yvel, acceleration_y);
+  airship.yvel = fix16_add(airship.yvel, fix16_mul(acceleration_y, fix16_from_int(dt)));
   airship.pos.y = fix16_add(airship.pos.y, airship.yvel);
-  //airship.pos.y = fix16_add(airship.pos.y, fix16_mul(airship.yvel, fix16_from_int(dt / 1000)));
+  //airship.pos.y = fix16_add(airship.pos.y, fix16_mul(airship.yvel, fix16_from_int(dt))); //with this added the POS is now 20% off.
    
    ypos = fix16_to_int(airship.pos.y); //this needed to be jsut assigned and not added which was why is was fucking off to the moon
    xpos = fix16_to_int(airship.pos.x);
@@ -214,12 +219,7 @@ void gameGsLoop(void) {
       xpos, ypos,
       airship.bw, airship.bh, 9
       );
-  ULONG current_time = timerGet();
-  // //fix16_t dt = fix16_div(fix16_to_int(50), fix16_to_int(1000));
-  ULONG dt = timerGetDelta(last_frame_start, current_time);
-  if(dt < frame_delay){
-    timerWaitUs((frame_delay - dt) * 1000);
-  }
+  last_frame = current_time;
   //delayUntilNextFrame();
   viewProcessManagers(s_pView);//might be wrong
   copProcessBlocks();
