@@ -50,6 +50,7 @@ int y_pos = 0;
 short ypos = 0;
 short xpos = 0;
 ULONG startTime;
+ULONG frame_delay;
 UBYTE g_scored = false;
 
 airship_obj airship;
@@ -145,19 +146,19 @@ void gameGsCreate(void) {
   gSCORE = 0;
   
   startTime = timerGet();
-
+  frame_delay = 1000 / 10;
   systemUnuse();
   // Load the view
   viewLoad(s_pView);
 }
 ULONG last_frame = 0;
 void gameGsLoop(void) {
+  ULONG last_frame_start = timerGet();
   // This will loop every frame
   if(keyCheck(KEY_ESCAPE)) {
     gameExit();
   }
-  ULONG current_time = timerGet();
-  ULONG dt = timerGetDelta(last_frame, current_time);
+
   // undrawthe airship
   blitRect(
       s_pMainBuffer->pBack,
@@ -174,31 +175,36 @@ void gameGsLoop(void) {
   logWrite("Temp: %d\n", fix16_to_int(atmosphere.temperature));
   logWrite("Pressure: %d\n", fix16_to_int(atmosphere.pressure ));
   logWrite("Density: %d\n", fix16_to_int(atmosphere.denisty));
+
   //calculate the buoycany force for this altitude
   fix16_t bforce = cal_buoyancy_force(&constants, atmosphere.denisty, airship.volume);
   fix16_t force_gravity = cal_gravity_force(&constants, airship.dryMass);
+
   //calculate the netforce acting on the ship and the acceleration from that
+
   fix16_t net_force_y = fix16_sub(bforce,force_gravity);//some of these fix16 sub/add might need replaced 
   fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
+  
   logWrite("Bforce: %d\n", fix16_to_int(bforce));
   logWrite("Net = %d\n", fix16_to_int(net_force_y));
   logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
 
   //add that acceleration to the velocity
   airship.yvel = fix16_add(airship.yvel, acceleration_y);
-  //airship.yvel = fix16_add(airship.yvel, fix16_mul(acceleration_y, fix16_from_int(dt / 1000)));
+  //airship.yvel = fix16_add(airship.yvel, fix16_mul(acceleration_y, fix16_from_int(dt)));
   airship.pos.y = fix16_add(airship.pos.y, airship.yvel);
   //airship.pos.y = fix16_add(airship.pos.y, fix16_mul(airship.yvel, fix16_from_int(dt / 1000)));
-  ypos = fix16_to_int(airship.pos.y); //this needed to be jsut assigned and not added which was why is was fucking off to the moon
-  xpos = fix16_to_int(airship.pos.x);
-  logWrite("AirshipPOS %d\n", ypos);
+   
+   ypos = fix16_to_int(airship.pos.y); //this needed to be jsut assigned and not added which was why is was fucking off to the moon
+   xpos = fix16_to_int(airship.pos.x);
+   logWrite("AirshipPOS %d\n", ypos);
 
   //controls to move the player
   if(keyCheck(KEY_D)){  //move player up
-    airship.pos.x = MIN(airship.pos.x + PADDLE_SPEED, 275);
+    xpos = MIN(xpos + PADDLE_SPEED, 275);
   }
   if(keyCheck(KEY_A)){  //move player up
-    airship.pos.x = MAX(airship.pos.x - PADDLE_SPEED, 0);
+    xpos = MAX(xpos - PADDLE_SPEED, 0);
   }
 
   //**Draw things**
@@ -208,7 +214,13 @@ void gameGsLoop(void) {
       xpos, ypos,
       airship.bw, airship.bh, 9
       );
-  last_frame = current_time;
+  ULONG current_time = timerGet();
+  // //fix16_t dt = fix16_div(fix16_to_int(50), fix16_to_int(1000));
+  ULONG dt = timerGetDelta(last_frame_start, current_time);
+  if(dt < frame_delay){
+    timerWaitUs((frame_delay - dt) * 1000);
+  }
+  //delayUntilNextFrame();
   viewProcessManagers(s_pView);//might be wrong
   copProcessBlocks();
   systemIdleBegin();
@@ -237,5 +249,25 @@ void lightHighScoreCheck(void) {//session based HS keeping until file system stu
   if(g_highScore < gSCORE) g_highScore = gSCORE;
 }
 
+void delayUntilNextFrame() {
+    static ULONG lastFrameTime = 0;
+    ULONG currentTime;
 
+    // Get the current time from your timer library
+    currentTime = timerGet();
+
+    // Calculate the time elapsed since the last frame
+    ULONG elapsedTime = currentTime - lastFrameTime;
+
+    // Calculate the time to wait until the next frame
+    ULONG frameTime = 1000 / 10; // Assuming 50 FPS for PAL
+
+    // If the elapsed time is less than the frame time, wait until the frame time is reached
+    if (elapsedTime < frameTime) {
+        timerWaitUs(frameTime - elapsedTime);
+    }
+
+    // Update the last frame time
+    lastFrameTime = timerGet();
+}
 
