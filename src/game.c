@@ -49,9 +49,11 @@ int g_highScore = 0; //needs to be assigned prior to initialization
 int y_pos = 0;
 short ypos = 0;
 short xpos = 0;
-ULONG startTime;
-ULONG frame_delay;
+ULONG startTime = 0;
+ULONG frame_delay = 0;
+ULONG last_frame = 0;
 UBYTE g_scored = false;
+fix16_t testdt = 0;
 
 airship_obj airship;
 Atmosphere atmosphere;
@@ -146,23 +148,25 @@ void gameGsCreate(void) {
   gSCORE = 0;
   
   startTime = timerGet();
-  frame_delay = 1000 / 60;
+  frame_delay = 50 / 1000;
+  testdt = fix16_div(fix16_from_int(50), fix16_from_int(1000));
+
   systemUnuse();
   // Load the view
   viewLoad(s_pView);
 }
-ULONG last_frame = 0;
+
 void gameGsLoop(void) {
   
   // This will loop every frame
   if(keyCheck(KEY_ESCAPE)) {
     gameExit();
   }
-   ULONG current_time = timerGet();
-  // //fix16_t dt = fix16_div(fix16_to_int(50), fix16_to_int(1000));
+  ULONG current_time = timerGet();
+
   ULONG dt = timerGetDelta(last_frame, current_time);
   if(dt < frame_delay){
-    timerWaitUs((frame_delay - dt) * 1000);
+    timerWaitUs((frame_delay - dt));
   }
   // undrawthe airship
   blitRect(
@@ -186,24 +190,22 @@ void gameGsLoop(void) {
   fix16_t force_gravity = cal_gravity_force(&constants, airship.dryMass);
 
   //calculate the netforce acting on the ship and the acceleration from that
-
   fix16_t net_force_y = fix16_sub(bforce,force_gravity);//some of these fix16 sub/add might need replaced 
   fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
   
   logWrite("Bforce: %d\n", fix16_to_int(bforce));
   logWrite("Net = %d\n", fix16_to_int(net_force_y));
   logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
-
+  
   //add that acceleration to the velocity
   //airship.yvel = fix16_add(airship.yvel, acceleration_y);
-  airship.yvel = fix16_add(airship.yvel, fix16_mul(acceleration_y, fix16_from_int(dt)));
+  airship.yvel = fix16_add(airship.yvel, fix16_mul(acceleration_y, testdt));
   airship.pos.y = fix16_add(airship.pos.y, airship.yvel);
-  //airship.pos.y = fix16_add(airship.pos.y, fix16_mul(airship.yvel, fix16_from_int(dt))); //with this added the POS is now 20% off.
-   
-   ypos = fix16_to_int(airship.pos.y); //this needed to be jsut assigned and not added which was why is was fucking off to the moon
-   xpos = fix16_to_int(airship.pos.x);
-   logWrite("AirshipPOS %d\n", ypos);
-
+  
+  ypos = fix16_to_int(airship.pos.y); //this needed to be jsut assigned and not added which was why is was fucking off to the moon
+  xpos = fix16_to_int(airship.pos.x);
+  logWrite("AirshipPOS %d\n", ypos);
+  
   //controls to move the player
   if(keyCheck(KEY_D)){  //move player up
     xpos = MIN(xpos + PADDLE_SPEED, 275);
@@ -224,8 +226,8 @@ void gameGsLoop(void) {
   viewProcessManagers(s_pView);//might be wrong
   copProcessBlocks();
   systemIdleBegin();
-  vPortWaitUntilEnd(s_pVpMain);
-  //vPortWaitForEnd(s_pVpMain);
+ // vPortWaitUntilEnd(s_pVpMain);
+  vPortWaitForEnd(s_pVpMain);
   systemIdleEnd();
   }
 
@@ -249,25 +251,4 @@ void lightHighScoreCheck(void) {//session based HS keeping until file system stu
   if(g_highScore < gSCORE) g_highScore = gSCORE;
 }
 
-void delayUntilNextFrame() {
-    static ULONG lastFrameTime = 0;
-    ULONG currentTime;
-
-    // Get the current time from your timer library
-    currentTime = timerGet();
-
-    // Calculate the time elapsed since the last frame
-    ULONG elapsedTime = currentTime - lastFrameTime;
-
-    // Calculate the time to wait until the next frame
-    ULONG frameTime = 1000 / 10; // Assuming 50 FPS for PAL
-
-    // If the elapsed time is less than the frame time, wait until the frame time is reached
-    if (elapsedTime < frameTime) {
-        timerWaitUs(frameTime - elapsedTime);
-    }
-
-    // Update the last frame time
-    lastFrameTime = timerGet();
-}
 
