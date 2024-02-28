@@ -4,6 +4,8 @@
 #include <fixmath/fix16.h>
 #include "game.h"
 
+typedef struct airship_obj airship_obj;
+
 typedef struct{
     fix16_t gravity_on_earth; // m/s^2
     fix16_t air_density_sea_level; // kg/m^3
@@ -42,6 +44,10 @@ void update_temp(Atmosphere *atmosphere, Constants *constants, Vector2D pos);
 void update_pressure(Atmosphere *atmosphere, Constants *constants, Vector2D pos);
 void update_density(Atmosphere *atmosphere, Constants *constants);
 fix16_t calculate_volume(fix16_t length, fix16_t diameter);
+fix16_t calculate_frontal_area(fix16_t diameter);
+fix16_t calculate_lateral_area(fix16_t length, fix16_t diameter);
 fix16_t cal_buoyancy_force(Constants *constants, fix16_t density, fix16_t volume);
 fix16_t cal_gravity_force(Constants *constants, short mass);
+fix16_t cal_y_drag_force(Atmosphere *atmosphere, airship_obj airship);
+fix16_t cal_x_drag_force(Atmosphere *atmosphere, airship_obj airship);
 #endif

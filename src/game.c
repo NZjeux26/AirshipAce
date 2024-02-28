@@ -140,8 +140,13 @@ void gameGsCreate(void) {
   airship.diameter = F16(3.05);
   airship.volume = calculate_volume(airship.length,airship.diameter);
   airship.dryMass = 202;
-  
+  airship.cd = F16(0.029);
+  airship.frontal_area = calculate_frontal_area(airship.diameter);
+  airship.lateral_area = calculate_lateral_area(airship.length,airship.diameter);
+
   logWrite("Airship Volume: %d\n",fix16_to_int(airship.volume));
+  logWrite("Airship frontal: %d\n",fix16_to_int(airship.frontal_area));
+  logWrite("Airship lateral: %d\n",fix16_to_int(airship.lateral_area));
   //convert the score from int to string for drawing
   // stringDecimalFromULong(gSCORE, scorebuffer);
   scoretextbitmap = fontCreateTextBitMapFromStr(fallfontsmall, scorebuffer); //redo bitmap
@@ -176,21 +181,13 @@ void gameGsLoop(void) {
       );
   //controls
 
-  //recheck the atmosphere, force calculations
-  update_temp(&atmosphere,&constants, airship.pos);
-  update_pressure(&atmosphere,&constants, airship.pos);
-  update_density(&atmosphere, &constants);
-
-  logWrite("Temp: %d\n", fix16_to_int(atmosphere.temperature));
-  logWrite("Pressure: %d\n", fix16_to_int(atmosphere.pressure ));
-  logWrite("Density: %d\n", fix16_to_int(atmosphere.denisty));
-
   //calculate the buoycany force for this altitude
   fix16_t bforce = cal_buoyancy_force(&constants, atmosphere.denisty, airship.volume);
   fix16_t force_gravity = cal_gravity_force(&constants, airship.dryMass);
-
+  fix16_t y_drag = cal_y_drag_force(&atmosphere,airship);//need to confirm this 
   //calculate the netforce acting on the ship and the acceleration from that
-  fix16_t net_force_y = fix16_sub(bforce,force_gravity);//some of these fix16 sub/add might need replaced 
+  fix16_t net_force_y = fix16_sub(fix16_sub(bforce,force_gravity),y_drag);//some of these fix16 sub/add might need replaced 
+
   fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
   
   logWrite("Bforce: %d\n", fix16_to_int(bforce));
@@ -221,6 +218,16 @@ void gameGsLoop(void) {
       xpos, ypos,
       airship.bw, airship.bh, 9
       );
+  
+  //recheck the atmosphere, force calculations
+  update_temp(&atmosphere,&constants, airship.pos);
+  update_pressure(&atmosphere,&constants, airship.pos);
+  update_density(&atmosphere, &constants);
+
+  logWrite("Temp: %d\n", fix16_to_int(atmosphere.temperature));
+  logWrite("Pressure: %d\n", fix16_to_int(atmosphere.pressure ));
+  logWrite("Density: %d\n", fix16_to_int(atmosphere.denisty));
+  
   last_frame = current_time;
   //delayUntilNextFrame();
   viewProcessManagers(s_pView);//might be wrong

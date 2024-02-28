@@ -9,7 +9,7 @@ void gameGsCreate(void);
 void gameGsLoop(void);
 void gameGsDestroy(void);
 
-typedef struct {//struct for player parameters
+typedef struct airship_obj {//struct for player parameters
     fix16_t length;         //Length of the airship for calculations
     fix16_t diameter;       //Diameter of the airship for calculations
     short bw;               //Rectangle width **This and the height will be what's actually drawn on screen and is also the hitbox
@@ -28,7 +28,7 @@ typedef struct {//struct for player parameters
     short weaponHardpoints; //amount of hardpoints the ship has for weapons
     fix16_t xvel;           //x velocity
     fix16_t yvel;           //y velocity
-    Vector2D pos;        //Position
+    Vector2D pos;           //Position
     short health;           //health
 } airship_obj;
 

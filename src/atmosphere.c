@@ -7,7 +7,7 @@ Vector2D createVector2D(fix16_t x, fix16_t y){
     vec.y = y;
     return vec;
 }
-
+//creates all the constants that are needed for the atmopshere or other functions
 Constants constants_init() {
     Constants constants;
     constants.gravity_on_earth = F16(9.80665);
@@ -23,7 +23,7 @@ Constants constants_init() {
     constants.molar_mass_of_hydrogen = F16(0.00201588);
     return constants;
 }
-
+//creates the atmosphere with all standard parameters based of ISA
 void create_atmosphere(Atmosphere *atmosphere, Constants *constants){
     atmosphere->pressure = constants->standard_pressure_sea_level;
     atmosphere->denisty = constants->air_density_sea_level;
@@ -51,13 +51,13 @@ void update_density(Atmosphere *atmosphere, Constants *constants){
                         );
     atmosphere->denisty = fix16_mul(density, fix16_from_int(100));
 }
-
+//calculates the buoyancy force (up) of an object 
 fix16_t cal_buoyancy_force(Constants *constants, fix16_t density, fix16_t volume){
     fix16_t bforce = fix16_mul(fix16_sub(density, constants->hydrogen_density),
                      fix16_mul(constants->gravity_on_earth, volume));
     return bforce;
 }
-//might be able to replace these fix16_t values with shorts. 
+//calculates the force of gravity acting on an object mass 
 fix16_t cal_gravity_force(Constants *constants, short mass){
     fix16_t gravity_force = fix16_mul(fix16_from_int(mass), constants->gravity_on_earth);
     return gravity_force;
@@ -69,5 +69,27 @@ fix16_t calculate_volume(fix16_t length, fix16_t diameter) {
     fix16_t radiusSq = fix16_sq(radius);
     fix16_t volume = fix16_mul(fix16_pi,fix16_mul(radiusSq,length));
     return volume;
-    
 }
+//self.frontal_area = math.pi * self.radius**2 
+fix16_t calculate_frontal_area(fix16_t diameter){
+    fix16_t radius = fix16_div(diameter, fix16_from_int(2));
+    fix16_t radiusSq = fix16_sq(radius);
+    fix16_t front = fix16_mul(fix16_pi, radiusSq);
+    return front;
+}
+//self.lateral_area = 2 * math.pi * self.radius * self.length
+fix16_t calculate_lateral_area(fix16_t length, fix16_t diameter){
+    fix16_t radius = fix16_div(diameter, fix16_from_int(2));
+    fix16_t twopi = fix16_mul(fix16_from_int(2), fix16_pi);
+    fix16_t lengthRad = fix16_mul(length, radius);
+    fix16_t lateral_area = fix16_mul(twopi,lengthRad);
+    return lateral_area;
+}
+//return (density / 2) * self.yval**2 * self.cd * self.lateral_area
+fix16_t cal_y_drag_force(Atmosphere *atmosphere, airship_obj airship){
+    fix16_t halfden = fix16_div(atmosphere->denisty, fix16_from_int(2));
+    fix16_t yvalsq = fix16_sq(airship.yvel);
+    fix16_t ydrag = fix16_mul(fix16_mul(halfden,yvalsq),fix16_mul(airship.cd, airship.lateral_area));
+    return ydrag;
+}
+//fix16_t cal_x_drag_force(Atmosphere *atmosphere, airship_obj *airship);
