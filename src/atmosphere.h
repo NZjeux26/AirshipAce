@@ -5,7 +5,7 @@
 #include "game.h"
 
 typedef struct airship_obj airship_obj;
-
+typedef struct engine_obj engine_obj;
 typedef struct{
     fix16_t gravity_on_earth; // m/s^2
     fix16_t air_density_sea_level; // kg/m^3
@@ -50,4 +50,5 @@ fix16_t cal_buoyancy_force(Constants *constants, fix16_t density, fix16_t volume
 fix16_t cal_gravity_force(Constants *constants, short mass);
 fix16_t cal_y_drag_force(Atmosphere *atmosphere, airship_obj airship);
 fix16_t cal_x_drag_force(Atmosphere *atmosphere, airship_obj airship);
+fix16_t cal_prop_area(engine_obj *engine);
 #endif

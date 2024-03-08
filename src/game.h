@@ -32,13 +32,14 @@ typedef struct airship_obj {//struct for player parameters
     short health;           //health
 } airship_obj;
 
-typedef struct{
-    int mass;
+typedef struct engine_obj{
+    short mass;
     fix16_t fuel_flow;
-    short prop_diameter;
+    fix16_t prop_diameter;
     fix16_t prop_area;
     fix16_t prop_efficiency;
-    short thrust;
-} Engine;
+    fix16_t ve; //the velocity of the air behind the propeller at full speed, zero forward velocity
+    fix16_t thrust;
+} engine_obj;
 
 #endif // _GAME_H_

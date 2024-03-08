@@ -1,0 +1,167 @@
+Formulas and Constants for Atmospheric Properties Calculation
+
+1. Temperature at Altitude (ISA model):
+   T = T0 - L * altitude
+
+   Where:
+   - T is the temperature at the given altitude.
+   - T0 is the sea level temperature (288.15 K).
+   - L is the temperature lapse rate (0.0065 K/m).
+   - altitude is the input altitude.
+
+2. Pressure at Altitude (ISA model):
+   P = P0 * (1 - L * altitude / T0)^(g / (L * R))
+
+   Where:
+   - P is the pressure at the given altitude.
+   - P0 is the sea level pressure (101325 Pa).
+   - L is the temperature lapse rate (0.0065 K/m).
+   - g is the acceleration due to gravity (9.8 m/s²).
+   - R is the molar gas constant (8.314462 J/(mol·K)).
+   - altitude is the input altitude.
+
+3. Density at Altitude (Ideal Gas Law):
+   ρ = (P * M) / (R * T)
+
+   Where:
+   - ρ is the density at the given altitude.
+   - P is the pressure at the given altitude.
+   - M is the molar mass of Earth's air (0.0289644 kg/mol).
+   - R is the molar gas constant (8.314462 J/(mol·K)).
+   - T is the temperature at the given altitude.
+
+Constants:
+- Sea level temperature (T0): 288.15 K
+- Temperature lapse rate (L): 0.0065 K/m
+- Sea level pressure (P0): 101325 Pa
+- Acceleration due to gravity (g): 9.8 m/s²
+- Molar gas constant (R): 8.314462 J/(mol·K)
+- Molar mass of Earth's air (M): 0.0289644 kg/mol
+
+
+Buoyant Force Calculation for Hydrogen Gas
+
+Formula:
+F_buoyant = ρ_fluid * V_displaced * g
+
+Where:
+- F_buoyant is the buoyant force (lifting force),
+- ρ_fluid is the density of the fluid (hydrogen gas),
+- V_displaced is the volume of the fluid displaced by the object,
+- g is the acceleration due to gravity (approximately 9.8 m/s²).
+
+For Hydrogen Gas:
+- Density of Hydrogen (at STP): 0.08988 kg/m³
+
+Buoyant Force Formula for Hydrogen Gas:
+F_buoyant = Density_of_Hydrogen * Volume_of_Hydrogen * g
+
+Note: Use consistent units for the calculation. If the volume is given in cubic meters, the density in kg/m³, and gravity in m/s², the result will be in Newtons (N), which is the unit of force.
+
+FB = (ρair - ρgas) × g × V
+(1.292 - 0.090) kg/m3 = 1.202 kg/m3
+1 m3 × 1.202 kg/m3 × 9.8 N/kg= 11.8 N <- In the Amiga version you could just precalculate this figure and then just read from a table or something.
+
+That formula looks like: 
+HL = V * 1.202 * 9.81
+HL = Hydrogen lift in Newtons
+V = Volume in Cubic meters
+1.202 = Lifting capicity of hydrogen (1.202 KG per m3 of Hydrogen)
+9.81 = Gravity
+
+Newtons of an object is N = gravity * mass 
+
+Acceleration with Buoyant Force:
+
+1. Calculate Gravitational Force:
+   F_gravity = m * g
+   where:
+     - m is the mass of the object
+     - g is the acceleration due to gravity (approx. 9.8 m/s^2 on Earth)
+
+2. Calculate Buoyant Force:
+   F_buoyant = ρ * V * g
+   where:
+     - ρ is the density of the fluid
+     - V is the volume of fluid displaced by the object
+
+   If the object is fully submerged:
+     V = m / ρ_object
+     where ρ_object is the density of the object
+
+3. Determine Net Force:
+   F_net = F_buoyant - F_gravity
+
+4. Calculate Acceleration:
+   a = F_net / m
+
+   v = a * time 
+
+Current Airship is loosely based on LZ-127 Graf Zeppelin & the USS Los Angles
+Length: 236.6 m (776 ft 3 in)
+Diameter: 30.5 m (100 ft 1 in) maximum
+Fineness ratio: 7.25
+Height: 33.5 m (109 ft 11 in)
+
+Drag Coefficent (USS Los Angles): 0.023
+
+Propeller Thrust Calculation Formulas:
+
+1. Basic Thrust Formula:
+   T = η * ρ * A * V * (V - V₀)
+
+   Where:
+   - T is the thrust,
+   - η is the propeller efficiency (0.7 to 0.9),
+   - ρ is the air density,
+   - A is the disc area swept by the propeller,
+   - V is the effective airspeed,
+   - V₀ is the airspeed of the aircraft (if any) in still air.
+
+2. Disc Area (\(A\)) Calculation for Two-Bladed Propeller:
+   A = π * (D/2)^2 (Area of a circle)
+
+3. Disc Area (\(A\)) Calculation for Three-Bladed Propeller:
+   A = (sqrt(3) * π * D²) / 4
+
+   Where:
+   - D is the diameter of the propeller.
+
+OR sue the more correct formula
+F = 0.5 * rho * A * (Ve^2 - V0^2)
+
+Where:
+
+F is the thrust (force) in Newtons
+rho is the air density in kilograms per cubic meter (kg/m³)
+A is the propeller disk area in square meters (m²)
+Ve is the exit velocity of the air behind the propeller in meters per second (m/s)
+V0 is the inflow velocity of the air entering the propeller in meters per second (m/s)
+
+Engine Data
+Fuel flow:
+   100% = 19 Gallons per Hour
+   50% = 8 Gallons per Hour
+   Idle = 0.5 Gallons per Hour
+
+Fuel mass is 0.719KG per Litre
+
+**Converting Masses**
+Just devide the mass by 1000 for big things and maybe a 100 for little things like ammo
+
+
+
+
+Websites: 
+Pressure: https://www.mide.com/air-pressure-at-altitude-calculator
+Denisty: https://www.calctool.org/atmospheric-thermodynamics/air-density
+Barometric Formula: https://en.wikipedia.org/wiki/Barometric_formula
+Hydrogen Calculator: https://calculator.academy/hydrogen-lift-calculator/
+Lifting Gas Formula: https://en.wikipedia.org/wiki/Lifting_gas#:~:text=Therefore%2C%20the%20amount%20of%20mass,m3%20%3D%201.202%20kg%2Fm&text=and%20the%20buoyant%20force%20for,9.8%20N%2Fkg%3D%2011.8%20N
+ICA Wiki: https://en.wikipedia.org/wiki/International_Standard_Atmosphere#ICAO_Standard_Atmosphere
+Engine Manual: https://www.lycoming.com/sites/default/files/attachments/O%2520%2526%2520IO-540%2520Oper%2520Manual%252060297-10.pdf
+Fuel Calculator: https://e6bx.com/unit-converter/fuel/
+Weapons Database: https://weaponsystems.net/ 
+105mm M1 Shell: https://arconpartners.net/products/ammunition/large-caliber/105-mm-round-with-he-m1-projectile-and-m67-propelling-charge-he-for-105-mm-howitzers/
+
+

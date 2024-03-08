@@ -55,7 +55,8 @@ ULONG last_frame = 0;
 UBYTE g_scored = false;
 fix16_t testdt = 0;
 
-airship_obj airship;
+airship_obj airship;  //this is just a testing version, in a full version of the game i'd have these named correctly with ship types etc...
+engine_obj engine;
 Atmosphere atmosphere;
 Constants constants;
 
@@ -132,6 +133,7 @@ void gameGsCreate(void) {
   logWrite("Temp1: %d\n", fix16_to_int(atmosphere.temperature));
   logWrite("Pressure1: %d\n", fix16_to_int(atmosphere.pressure));
   logWrite("Density1: %d\n", fix16_to_int(atmosphere.denisty));
+  
   //create the airship
   airship.pos = createVector2D(F16(PLAYFIELD_WIDTH / 2), F16(0));
   airship.bw = 14;
@@ -147,6 +149,14 @@ void gameGsCreate(void) {
   logWrite("Airship Volume: %d\n",fix16_to_int(airship.volume));
   logWrite("Airship frontal: %d\n",fix16_to_int(airship.frontal_area));
   logWrite("Airship lateral: %d\n",fix16_to_int(airship.lateral_area));
+  //create the engine
+  engine.mass = 2;
+  engine.fuel_flow = F16(0.719);
+  engine.prop_diameter = F16(2.032);
+  engine.prop_efficiency = F16(0.83);
+  engine.thrust = F16(0);
+  engine.ve = F16(3.5);
+  engine.prop_area = cal_prop_area(&engine);
   //convert the score from int to string for drawing
   // stringDecimalFromULong(gSCORE, scorebuffer);
   scoretextbitmap = fontCreateTextBitMapFromStr(fallfontsmall, scorebuffer); //redo bitmap
@@ -196,7 +206,7 @@ void gameGsLoop(void) {
   
   //add that acceleration to the velocity
   //airship.yvel = fix16_add(airship.yvel, acceleration_y);
-  airship.yvel = fix16_add(airship.yvel, fix16_mul(acceleration_y, testdt));
+  airship.yvel = fix16_add(airship.yvel, fix16_mul(acceleration_y, testdt));//yvel now 22% off due to the yvel being off and thus the drag is higher than it should be.
   airship.pos.y = fix16_add(airship.pos.y, airship.yvel);
   
   ypos = fix16_to_int(airship.pos.y); //this needed to be jsut assigned and not added which was why is was fucking off to the moon
