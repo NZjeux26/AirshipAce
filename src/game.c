@@ -157,6 +157,7 @@ void gameGsCreate(void) {
   engine.thrust = F16(0);
   engine.ve = F16(3.5);
   engine.prop_area = cal_prop_area(&engine);
+  engine.thrust = F16(0); //initial value for thrust, it's calculated each frame along with everything else.
   //convert the score from int to string for drawing
   // stringDecimalFromULong(gSCORE, scorebuffer);
   scoretextbitmap = fontCreateTextBitMapFromStr(fallfontsmall, scorebuffer); //redo bitmap

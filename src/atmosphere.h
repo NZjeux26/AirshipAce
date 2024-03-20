@@ -51,4 +51,5 @@ fix16_t cal_gravity_force(Constants *constants, short mass);
 fix16_t cal_y_drag_force(Atmosphere *atmosphere, airship_obj airship);
 fix16_t cal_x_drag_force(Atmosphere *atmosphere, airship_obj airship);
 fix16_t cal_prop_area(engine_obj *engine);
+fix16_t cal_engine_thrust(engine_obj *engine, Atmosphere *atmosphere, fix16_t velocity);
 #endif

@@ -98,4 +98,13 @@ fix16_t cal_prop_area(engine_obj *engine){
     fix16_t prop_area = fix16_mul(fix16_pi,fix16_mul(prop_radius,prop_radius));
     return prop_area;
 }
+//calculates the thrust of one engine following: T = η * ρ * A * V * (V - V₀) see maths text for detail
+fix16_t cal_engine_thrust(engine_obj *engine, Atmosphere *atmosphere, fix16_t velocity){
+    fix16_t prop_efficenty = fix16_mul(atmosphere->denisty, engine->prop_area);
+    fix16_t velocity_prop = fix16_mul(fix16_sub(fix16_sq(engine->ve), fix16_sq(velocity)), prop_efficenty);
+    fix16_t thrust = fix16_mul(prop_efficenty, velocity_prop);
+    return thrust;
+}
 //fix16_t cal_x_drag_force(Atmosphere *atmosphere, airship_obj *airship);
+
+    
