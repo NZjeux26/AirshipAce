@@ -142,6 +142,7 @@ void gameGsCreate(void) {
   airship.diameter = F16(3.05);
   airship.volume = calculate_volume(airship.length,airship.diameter);
   airship.dryMass = 202;
+  airship.engines = 4;
   airship.cd = F16(0.029);
   airship.frontal_area = calculate_frontal_area(airship.diameter);
   airship.lateral_area = calculate_lateral_area(airship.length,airship.diameter);
@@ -200,7 +201,9 @@ void gameGsLoop(void) {
   fix16_t net_force_y = fix16_sub(fix16_sub(bforce,force_gravity),y_drag);//some of these fix16 sub/add might need replaced 
 
   fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
-  
+
+  engine.thrust = cal_engine_thrust(&engine,&atmosphere,airship.yvel);//python used yvel so doing it here for consistantcy 
+  fix16_t totalthurst = fix16_mul(engine.thrust, fix16_from_int(airship.engines));
   logWrite("Bforce: %d\n", fix16_to_int(bforce));
   logWrite("Net = %d\n", fix16_to_int(net_force_y));
   logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));

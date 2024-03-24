@@ -1,6 +1,7 @@
 #include <fixmath/fix16.h>
 #include "game.h"
 
+fix16_t half = F16(0.5);
 Vector2D createVector2D(fix16_t x, fix16_t y){
     Vector2D vec;
     vec.x = x; 
@@ -100,8 +101,8 @@ fix16_t cal_prop_area(engine_obj *engine){
 }
 //calculates the thrust of one engine following: T = η * ρ * A * V * (V - V₀) see maths text for detail
 fix16_t cal_engine_thrust(engine_obj *engine, Atmosphere *atmosphere, fix16_t velocity){
-    fix16_t prop_efficenty = fix16_mul(atmosphere->denisty, engine->prop_area);
-    fix16_t velocity_prop = fix16_mul(fix16_sub(fix16_sq(engine->ve), fix16_sq(velocity)), prop_efficenty);
+    fix16_t prop_efficenty = fix16_mul(fix16_mul(half, atmosphere->denisty), engine->prop_area);
+    fix16_t velocity_prop = fix16_sub(fix16_sq(engine->ve), velocity);
     fix16_t thrust = fix16_mul(prop_efficenty, velocity_prop);
     return thrust;
 }

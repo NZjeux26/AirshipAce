@@ -26,6 +26,7 @@ typedef struct airship_obj {//struct for player parameters
     int crewMass;           //amount of crew in tons
     int weaponMass;         //mass of th weapon loadout
     short weaponHardpoints; //amount of hardpoints the ship has for weapons
+    short engines;          //amount of engines
     fix16_t xvel;           //x velocity
     fix16_t yvel;           //y velocity
     Vector2D pos;           //Position
