@@ -38,12 +38,13 @@ static tSimpleBufferManager *s_pMainBuffer;
 static tRandManager *s_pRandManager;
 
 static tBitMap *pBmBackground;
-static UBYTE s_hasBGToRestore[2];
 static tBitMap *s_pBmTestMask[2];
 static tBitMap *s_pBmShipTest[2];
 static tBitMap *s_pBmShipTest_Mask[2];
+
 //arrays holding previous positions of the player and pipes
 tUwCoordYX s_pPlayerPrevPos[2];
+static UBYTE s_hasBGToRestore[2];
 UBYTE s_ubBufferIndex = 0;
 
 tFont *fallfontsmall; //global for font
@@ -56,6 +57,11 @@ int g_highScore = 0; //needs to be assigned prior to initialization
 int y_pos = 0;
 short ypos = 0;
 short xpos = 0;
+UBYTE increase_throttle_y = false;
+UBYTE increase_throttle_x = false;
+short throttle_y = 0;
+short throttle_x = 0;
+
 ULONG startTime = 0;
 ULONG frame_delay = 0;
 ULONG last_frame = 0;
@@ -154,9 +160,9 @@ void gameGsCreate(void) {
   airship.frontal_area = calculate_frontal_area(airship.diameter);
   airship.lateral_area = calculate_lateral_area(airship.length,airship.diameter);
 
-  logWrite("Airship Volume: %d\n",fix16_to_int(airship.volume));
-  logWrite("Airship frontal: %d\n",fix16_to_int(airship.frontal_area));
-  logWrite("Airship lateral: %d\n",fix16_to_int(airship.lateral_area));
+  // logWrite("Airship Volume: %d\n",fix16_to_int(airship.volume));
+  // logWrite("Airship frontal: %d\n",fix16_to_int(airship.frontal_area));
+  // logWrite("Airship lateral: %d\n",fix16_to_int(airship.lateral_area));
   //create the engine
   engine.mass = 2;
   engine.fuel_flow = F16(0.719);
@@ -207,36 +213,39 @@ void gameGsLoop(void) {
   if(dt < frame_delay){
     timerWaitUs((frame_delay - dt));
   }
-  // undrawthe airship
+  // undraw the airship
   if(s_hasBGToRestore[s_ubBufferIndex]){
     blitCopy(s_pBmTestMask[s_ubBufferIndex],0,0,
     s_pMainBuffer->pBack,s_pPlayerPrevPos[s_ubBufferIndex].uwX,s_pPlayerPrevPos[s_ubBufferIndex].uwY,
     airship.bw,airship.bh, MINTERM_COOKIE);
   }
-  // blitRect(
-  //     s_pMainBuffer->pBack,
-  //     xpos, ypos,
-  //     airship.bw, airship.bh, 0
-  //     );
-  //controls
+
+  //calculate forces on the airship
 
   //calculate the buoycany force for this altitude
   fix16_t bforce = cal_buoyancy_force(&constants, atmosphere.denisty, airship.volume);
   fix16_t force_gravity = cal_gravity_force(&constants, airship.dryMass);
   fix16_t y_drag = cal_y_drag_force(&atmosphere,airship);//need to confirm this 
-  //calculate the netforce acting on the ship and the acceleration from that
-  fix16_t net_force_y = fix16_sub(fix16_sub(bforce,force_gravity),y_drag);//some of these fix16 sub/add might need replaced 
+  //fix16_t x_drag = cal_x_drag_force(&atmosphere,airship);
 
-  fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
-
+  //calculate the engine thrust and the force from that on the X/Y axis 
   engine.thrust = cal_engine_thrust(&engine,&atmosphere,airship.yvel);//python used yvel so doing it here for consistantcy 
   fix16_t totalthurst = fix16_mul(engine.thrust, fix16_from_int(airship.engines));
+  fix16_t enginethrust_y = fix16_mul(totalthurst, fix16_div(fix16_from_int(throttle_y), fix16_from_int(100)));
+  //fix16_t enginethrust_x = fix16_mul(totalthurst, fix16_div(fix16_from_int(throttle_x), fix16_from_int(100)));
+
+  //calculate the netforce acting on the ship and the acceleration from that
+  fix16_t net_force_y = fix16_add(fix16_sub(fix16_sub(bforce,force_gravity),y_drag),enginethrust_y);//some of these fix16 sub/add might need replaced 
+  
+  //calculate the acceleration on the ship taking into account all the forces acting on it.
+  fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
+  logWrite("throttle: %d\n", throttle_y);
+  logWrite("Engine Thrust: %d\n", fix16_to_int(enginethrust_y));
   logWrite("Bforce: %d\n", fix16_to_int(bforce));
   logWrite("Net = %d\n", fix16_to_int(net_force_y));
   logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
   
   //add that acceleration to the velocity
-  //airship.yvel = fix16_add(airship.yvel, acceleration_y);
   airship.yvel = fix16_add(airship.yvel, fix16_mul(acceleration_y, testdt));//yvel now 22% off due to the yvel being off and thus the drag is higher than it should be.
   airship.pos.y = fix16_add(airship.pos.y, airship.yvel);
   
@@ -245,14 +254,24 @@ void gameGsLoop(void) {
   logWrite("AirshipPOS %d\n", ypos);
   
   //controls to move the player
-  if(keyCheck(KEY_D)){  //move player up
-    xpos = MIN(xpos + PADDLE_SPEED, 275);
+  if(keyCheck(KEY_D)){  //move player right
+    throttle_x +=1;
   }
-  if(keyCheck(KEY_A)){  //move player up
-    xpos = MAX(xpos - PADDLE_SPEED, 0);
+  if(keyCheck(KEY_A)){  //move player left
+    throttle_x -=1;
   }
-
-  //i cound use a flag to only draw or undraw if the payer actually moved
+  if(keyCheck(KEY_S)){ //move player down
+    throttle_y +=1;
+  }
+  if(keyUse(KEY_R)){
+    logWrite("TrueR1\n");
+  }
+  if(keyCheck(KEY_W)){ //move player up
+    logWrite("True1\n");
+    xpos = MAX(airship.bw,0);
+    throttle_y --;
+  }
+  else{ logWrite("Not True1\n");}
   //save BG
   blitCopy(s_pMainBuffer->pBack,xpos,ypos,
   s_pBmTestMask[s_ubBufferIndex],0,0,
@@ -270,20 +289,15 @@ void gameGsLoop(void) {
     s_pMainBuffer->pBack,xpos,ypos,
     airship.bw,airship.bh,s_pBmShipTest_Mask[s_ubBufferIndex]->Planes[0]
   );
-  // blitRect(
-  //     s_pMainBuffer->pBack, 
-  //     xpos, ypos,
-  //     airship.bw, airship.bh, 9
-  //     );
   
   //recheck the atmosphere, force calculations
   update_temp(&atmosphere,&constants, airship.pos);
   update_pressure(&atmosphere,&constants, airship.pos);
   update_density(&atmosphere, &constants);
 
-  logWrite("Temp: %d\n", fix16_to_int(atmosphere.temperature));
-  logWrite("Pressure: %d\n", fix16_to_int(atmosphere.pressure ));
-  logWrite("Density: %d\n", fix16_to_int(atmosphere.denisty));
+  // logWrite("Temp: %d\n", fix16_to_int(atmosphere.temperature));
+  // logWrite("Pressure: %d\n", fix16_to_int(atmosphere.pressure ));
+  // logWrite("Density: %d\n", fix16_to_int(atmosphere.denisty));
   
   last_frame = current_time;
   //update the index
