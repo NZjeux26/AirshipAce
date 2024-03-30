@@ -149,7 +149,7 @@ void gameGsCreate(void) {
   
   //create the airship
   airship.pos = createVector2D(F16(PLAYFIELD_WIDTH / 2), F16(0));
-  airship.bw = 14;
+  airship.bw = 16;
   airship.bh = 14;
   airship.length = F16(23.25);
   airship.diameter = F16(3.05);
@@ -177,7 +177,7 @@ void gameGsCreate(void) {
   // stringDecimalFromULong(gSCORE, scorebuffer);
 
   //bitmap masks for keep background under the bitmap
-  s_pBmTestMask[0] = bitmapCreate(airship.bw,airship.bh,5,0);
+  s_pBmTestMask[0] = bitmapCreate(airship.bw,airship.bh,5,0); //explictyly using 16 
   s_pBmTestMask[1] = bitmapCreate(airship.bw,airship.bh,5,0);
   //Bitmap rect test for double buffering to try fix flickering issues
   s_pBmShipTest[0] = bitmapCreateFromFile("data/testrect.bm",0);
@@ -197,12 +197,14 @@ void gameGsCreate(void) {
   testdt = fix16_div(fix16_from_int(50), fix16_from_int(1000));
 
   systemUnuse();
+ 
+  //systemIsUsed();
   // Load the view
   viewLoad(s_pView);
 }
 
 void gameGsLoop(void) {
-  
+  //systemUnuse();
   // This will loop every frame
   if(keyCheck(KEY_ESCAPE)) {
     gameExit();
@@ -241,9 +243,9 @@ void gameGsLoop(void) {
   fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
   logWrite("throttle: %d\n", throttle_y);
   logWrite("Engine Thrust: %d\n", fix16_to_int(enginethrust_y));
-  logWrite("Bforce: %d\n", fix16_to_int(bforce));
-  logWrite("Net = %d\n", fix16_to_int(net_force_y));
-  logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
+  // logWrite("Bforce: %d\n", fix16_to_int(bforce));
+  // logWrite("Net = %d\n", fix16_to_int(net_force_y));
+  // logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
   
   //add that acceleration to the velocity
   airship.yvel = fix16_add(airship.yvel, fix16_mul(acceleration_y, testdt));//yvel now 22% off due to the yvel being off and thus the drag is higher than it should be.
@@ -263,15 +265,11 @@ void gameGsLoop(void) {
   if(keyCheck(KEY_S)){ //move player down
     throttle_y +=1;
   }
-  if(keyUse(KEY_R)){
-    logWrite("TrueR1\n");
-  }
   if(keyCheck(KEY_W)){ //move player up
     logWrite("True1\n");
-    xpos = MAX(airship.bw,0);
     throttle_y --;
   }
-  else{ logWrite("Not True1\n");}
+
   //save BG
   blitCopy(s_pMainBuffer->pBack,xpos,ypos,
   s_pBmTestMask[s_ubBufferIndex],0,0,
@@ -306,8 +304,8 @@ void gameGsLoop(void) {
   viewProcessManagers(s_pView);//might be wrong
   copProcessBlocks();
   systemIdleBegin();
-  vPortWaitUntilEnd(s_pVpMain);
-  //vPortWaitForEnd(s_pVpMain);
+  //vPortWaitUntilEnd(s_pVpMain);
+  vPortWaitForEnd(s_pVpMain);
   systemIdleEnd();
   }
 
