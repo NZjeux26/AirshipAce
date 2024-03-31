@@ -93,6 +93,12 @@ fix16_t cal_y_drag_force(Atmosphere *atmosphere, airship_obj airship){
     fix16_t ydrag = fix16_mul(fix16_mul(halfden,yvalsq),fix16_mul(airship.cd, airship.lateral_area));
     return ydrag;
 }
+fix16_t cal_x_drag_force(Atmosphere *atmosphere, airship_obj airship){
+    fix16_t halfden = fix16_div(atmosphere->denisty, fix16_from_int(2));
+    fix16_t yvalsq = fix16_sq(airship.xvel);
+    fix16_t ydrag = fix16_mul(fix16_mul(halfden,yvalsq),fix16_mul(airship.cd, airship.frontal_area));
+    return ydrag;
+}
 //returns the swept area of the propeller.  self.prop_area = math.pi * (prop_diameter / 2) **2
 fix16_t cal_prop_area(engine_obj *engine){
     fix16_t prop_radius = fix16_div(engine->prop_diameter, fix16_from_int(2));
@@ -106,6 +112,6 @@ fix16_t cal_engine_thrust(engine_obj *engine, Atmosphere *atmosphere, fix16_t ve
     fix16_t thrust = fix16_mul(prop_efficenty, velocity_prop);
     return thrust;
 }
-//fix16_t cal_x_drag_force(Atmosphere *atmosphere, airship_obj *airship);
+
 
     

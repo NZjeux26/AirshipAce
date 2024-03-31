@@ -37,7 +37,7 @@ static tVPort *s_pVpMain; // Viewport for playfield
 static tSimpleBufferManager *s_pMainBuffer;
 static tRandManager *s_pRandManager;
 
-static tBitMap *pBmBackground;
+//static tBitMap *pBmBackground;
 static tBitMap *s_pBmTestMask[2];
 static tBitMap *s_pBmShipTest[2];
 static tBitMap *s_pBmShipTest_Mask[2];
@@ -48,10 +48,12 @@ static UBYTE s_hasBGToRestore[2];
 UBYTE s_ubBufferIndex = 0;
 
 tFont *fallfontsmall; //global for font
-tTextBitMap *scoretextbitmap;//global for score text
-
+tTextBitMap *throttleXtbitmap;//global for throttle information
+tTextBitMap *throttleYtbitmap;
 //game vars
-char scorebuffer[20];
+char throttleXbuffer[20];
+char throttleYbuffer[20];
+
 int gSCORE = 0;
 int g_highScore = 0; //needs to be assigned prior to initialization
 int y_pos = 0;
@@ -125,20 +127,16 @@ void gameGsCreate(void) {
     26, 0xFFFF, 0 // Try patterns 0xAAAA, 0xEEEE, etc.
   );
 
-  gSCORE = 99999999;  //set to 99999999 so the bitmap is big enough to handle larger numbers
-
-  char i_highScore[20]; //buffer string to hold the highscore
-  stringDecimalFromULong(g_highScore, i_highScore); //convert to short
+  throttle_x = 9999;
+  throttle_y = 9999;
 
   fallfontsmall = fontCreate("data/myacefont.fnt");//create font
 
-  tTextBitMap *highscorebitmap = fontCreateTextBitMapFromStr(fallfontsmall, "High Score ");//create the bitmap with HIGHSCORE
-  fontDrawTextBitMap(s_pScoreBuffer->pBack, highscorebitmap, 0,10, 29, FONT_COOKIE); //draw the text
-  highscorebitmap = fontCreateTextBitMapFromStr(fallfontsmall, i_highScore);  //reuse the bitmap from writing the highscore text  
-  fontDrawTextBitMap(s_pScoreBuffer->pBack, highscorebitmap, 73,29, 5, FONT_COOKIE); //write out the highscore
+  tTextBitMap *highscorebitmap = fontCreateTextBitMapFromStr(fallfontsmall, "Throttle X ");
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, highscorebitmap, 0,10, 8, FONT_COOKIE);
 
-  tTextBitMap *textbitmap = fontCreateTextBitMapFromStr(fallfontsmall, "Score ");
-  fontDrawTextBitMap(s_pScoreBuffer->pBack, textbitmap, 0,20, 5, FONT_COOKIE);
+  tTextBitMap *textbitmap = fontCreateTextBitMapFromStr(fallfontsmall, "Throttle Y ");
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, textbitmap, 0,20, 8, FONT_COOKIE);
   
   //create the atmosphere
   constants = constants_init(); //setup the constants
@@ -172,9 +170,6 @@ void gameGsCreate(void) {
   engine.ve = F16(3.5);
   engine.prop_area = cal_prop_area(&engine);
   engine.thrust = F16(0); //initial value for thrust, it's calculated each frame along with everything else.
-  
-  //convert the score from int to string for drawing
-  // stringDecimalFromULong(gSCORE, scorebuffer);
 
   //bitmap masks for keep background under the bitmap
   s_pBmTestMask[0] = bitmapCreate(airship.bw,airship.bh,5,0); //explictyly using 16 
@@ -189,13 +184,15 @@ void gameGsCreate(void) {
   s_hasBGToRestore[0] = 0;
   s_hasBGToRestore[1] = 0;
 
-  scoretextbitmap = fontCreateTextBitMapFromStr(fallfontsmall, scorebuffer); //redo bitmap
-  gSCORE = 0;
+  throttleXtbitmap = fontCreateTextBitMapFromStr(fallfontsmall, throttleXbuffer); 
+  throttleYtbitmap = fontCreateTextBitMapFromStr(fallfontsmall, throttleXbuffer);
   
   startTime = timerGet();
   frame_delay = 50 / 1000;
   testdt = fix16_div(fix16_from_int(50), fix16_from_int(1000));
 
+  throttle_x = 0;
+  throttle_y = 0;
   systemUnuse();
  
   //systemIsUsed();
@@ -221,35 +218,38 @@ void gameGsLoop(void) {
     s_pMainBuffer->pBack,s_pPlayerPrevPos[s_ubBufferIndex].uwX,s_pPlayerPrevPos[s_ubBufferIndex].uwY,
     airship.bw,airship.bh, MINTERM_COOKIE);
   }
-
   //calculate forces on the airship
 
   //calculate the buoycany force for this altitude
   fix16_t bforce = cal_buoyancy_force(&constants, atmosphere.denisty, airship.volume);
   fix16_t force_gravity = cal_gravity_force(&constants, airship.dryMass);
   fix16_t y_drag = cal_y_drag_force(&atmosphere,airship);//need to confirm this 
-  //fix16_t x_drag = cal_x_drag_force(&atmosphere,airship);
+  fix16_t x_drag = cal_x_drag_force(&atmosphere,airship);
 
   //calculate the engine thrust and the force from that on the X/Y axis 
   engine.thrust = cal_engine_thrust(&engine,&atmosphere,airship.yvel);//python used yvel so doing it here for consistantcy 
   fix16_t totalthurst = fix16_mul(engine.thrust, fix16_from_int(airship.engines));
   fix16_t enginethrust_y = fix16_mul(totalthurst, fix16_div(fix16_from_int(throttle_y), fix16_from_int(100)));
-  //fix16_t enginethrust_x = fix16_mul(totalthurst, fix16_div(fix16_from_int(throttle_x), fix16_from_int(100)));
+  fix16_t enginethrust_x = fix16_mul(totalthurst, fix16_div(fix16_from_int(throttle_x), fix16_from_int(100)));
 
   //calculate the netforce acting on the ship and the acceleration from that
   fix16_t net_force_y = fix16_add(fix16_sub(fix16_sub(bforce,force_gravity),y_drag),enginethrust_y);//some of these fix16 sub/add might need replaced 
-  
+  fix16_t net_force_x = fix16_sub(enginethrust_x,x_drag);
   //calculate the acceleration on the ship taking into account all the forces acting on it.
   fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
-  logWrite("throttle: %d\n", throttle_y);
-  logWrite("Engine Thrust: %d\n", fix16_to_int(enginethrust_y));
+  fix16_t acceleration_x = fix16_div(net_force_x, fix16_from_int(airship.dryMass)); //mass will need to change to total once everything is added correctly
+  logWrite("@throttleY: %d\n", throttle_y);
+  logWrite("@throttleX: %d\n", throttle_x);
+  logWrite("@Engine Thrust: %d\n", fix16_to_int(totalthurst));
   // logWrite("Bforce: %d\n", fix16_to_int(bforce));
   // logWrite("Net = %d\n", fix16_to_int(net_force_y));
   // logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
   
   //add that acceleration to the velocity
   airship.yvel = fix16_add(airship.yvel, fix16_mul(acceleration_y, testdt));//yvel now 22% off due to the yvel being off and thus the drag is higher than it should be.
+  airship.xvel = fix16_add(airship.xvel, fix16_mul(acceleration_x,testdt));
   airship.pos.y = fix16_add(airship.pos.y, airship.yvel);
+  airship.pos.x = fix16_add(airship.pos.x,airship.xvel);
   
   ypos = fix16_to_int(airship.pos.y); //this needed to be jsut assigned and not added which was why is was fucking off to the moon
   xpos = fix16_to_int(airship.pos.x);
@@ -257,17 +257,20 @@ void gameGsLoop(void) {
   
   //controls to move the player
   if(keyCheck(KEY_D)){  //move player right
-    throttle_x +=1;
+    if(throttle_x >= -100 || throttle_x <= 100) throttle_x +=1;
+    updatethrottle(1);
   }
   if(keyCheck(KEY_A)){  //move player left
-    throttle_x -=1;
+    if(throttle_x >= -100 || throttle_x <= 100) throttle_x -=1;
+   // updatethrottle(1);
   }
   if(keyCheck(KEY_S)){ //move player down
-    throttle_y +=1;
+    if(throttle_x >= -100 || throttle_x <= 100) throttle_y +=1;
+    //updatethrottle(0);
   }
   if(keyCheck(KEY_W)){ //move player up
-    logWrite("True1\n");
-    throttle_y --;
+    if(throttle_x >= -100 || throttle_x <= 100) throttle_y -=1;
+    //updatethrottle(0);
   }
 
   //save BG
@@ -321,13 +324,22 @@ void gameGsDestroy(void) {
   logBlockEnd("gameGsDestroy");
 }
 
-void updateScore(void) {  //bug seems to appear where text for 10000 + seems to be erroring with: ERR: Text '10000' doesn't fit in text bitmap, text needs: 33,8, bitmap size: 32,8
-    gSCORE = gSCORE + 100;  //add score
-    stringDecimalFromULong(gSCORE, scorebuffer);
-    blitRect(s_pScoreBuffer->pBack, 40, 20, scoretextbitmap->uwActualWidth, scoretextbitmap->uwActualHeight, 0); //erase scorebuffer
-    fontFillTextBitMap(fallfontsmall, scoretextbitmap, scorebuffer);//refill
-    fontDrawTextBitMap(s_pScoreBuffer->pBack, scoretextbitmap, 40,20, 6, FONT_COOKIE);  //draw
+void updatethrottle(UBYTE w) {  //bug seems to appear where text for 10000 + seems to be erroring with: ERR: Text '10000' doesn't fit in text bitmap, text needs: 33,8, bitmap size: 32,8
+  if(w > 0){
+    //convert the score from int to string for drawing
+    stringDecimalFromULong(throttle_x, throttleXbuffer);
+    blitRect(s_pScoreBuffer->pBack, 75, 30, throttleXtbitmap->uwActualWidth, throttleXtbitmap->uwActualHeight, 0); //erase scorebuffer
+    fontFillTextBitMap(fallfontsmall, throttleXtbitmap, throttleXbuffer);//refill
+    fontDrawTextBitMap(s_pScoreBuffer->pBack, throttleXtbitmap, 75,30, 6, FONT_COOKIE);  //draw
+  }
+  else{
+    stringDecimalFromULong(throttle_y, throttleYbuffer);
+    blitRect(s_pScoreBuffer->pBack, 75, 20, throttleYtbitmap->uwActualWidth, throttleYtbitmap->uwActualHeight, 0); //erase scorebuffer
+    fontFillTextBitMap(fallfontsmall, throttleYtbitmap, throttleYbuffer);//refill
+    fontDrawTextBitMap(s_pScoreBuffer->pBack, throttleYtbitmap, 75,20, 6, FONT_COOKIE);  //draw
+  }
 }
+
 
 void lightHighScoreCheck(void) {//session based HS keeping until file system stuff cna be sorted.
   if(g_highScore < gSCORE) g_highScore = gSCORE;

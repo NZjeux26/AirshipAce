@@ -8,6 +8,7 @@
 void gameGsCreate(void);
 void gameGsLoop(void);
 void gameGsDestroy(void);
+void updatethrottle(UBYTE w);
 
 typedef struct airship_obj {//struct for player parameters
     fix16_t length;         //Length of the airship for calculations
