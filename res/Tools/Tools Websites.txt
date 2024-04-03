@@ -1,0 +1,2 @@
+https://andremichelle.github.io/platforms/tools/html/tileset-extractor/tileset-extractor.html  :: Breaking PNG into tiles
+https://zoopersoft.com/ditherprog.js/								:: Dither and converting to IFFs to load into Amigas

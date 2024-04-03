@@ -37,3 +37,5 @@
 dist/
 res/*
 !/res/Maths/
+!/res/Tools/
+!/res/Background/
