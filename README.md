@@ -17,9 +17,10 @@ In future versions, I want to add different classes of airships that can be cust
 
 Currently, this is aimed at the OCS graphic set, but I want to port it to AGA when ACE's capabilities in that area improve. 
 
+I am currently working towards a 0.1 version which will have the following:
+- Physics controlled airship
+- Scrolling background
+- End Tower/Finishing Area  
+
 ![testBG2](https://github.com/NZjeux26/AirshipAce/assets/91103932/cb7a4034-2154-4063-b684-1e771827951b)![bg2](https://github.com/NZjeux26/AirshipAce/assets/91103932/0937a7cb-6e04-4d49-9c91-288978611319)
 
-
-
-
-  
