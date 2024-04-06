@@ -5,6 +5,7 @@
 #include <ace/managers/game.h>
 #include <ace/managers/system.h>
 #include <ace/managers/viewport/simplebuffer.h>
+#include <ace/managers/viewport/tilebuffer.h>
 #include <ace/managers/blit.h> // Blitting fns
 #include <ace/managers/state.h>
 #include <ace/managers/rand.h>
@@ -34,14 +35,15 @@ static tView *s_pView; // View containing all the viewports
 static tVPort *s_pVpScore; // Viewport for score
 static tSimpleBufferManager *s_pScoreBuffer;
 static tVPort *s_pVpMain; // Viewport for playfield
-static tSimpleBufferManager *s_pMainBuffer;
+static tTileBufferManager *s_pMainBuffer;
+//static tSimpleBufferManager *s_pMainBuffer;
 static tRandManager *s_pRandManager;
 
 //static tBitMap *pBmBackground;
 static tBitMap *s_pBmTestMask[2];
 static tBitMap *s_pBmShipTest[2];
 static tBitMap *s_pBmShipTest_Mask[2];
-
+static tBitMap *s_pTiles;
 //arrays holding previous positions of the player and pipes
 tUwCoordYX s_pPlayerPrevPos[2];
 static UBYTE s_hasBGToRestore[2];
@@ -50,6 +52,7 @@ UBYTE s_ubBufferIndex = 0;
 tFont *fallfontsmall; //global for font
 tTextBitMap *throttleXtbitmap;//global for throttle information
 tTextBitMap *throttleYtbitmap;
+
 //game vars
 char throttleXbuffer[20];
 char throttleYbuffer[20];
@@ -102,10 +105,21 @@ void gameGsCreate(void) {
     // TAG_SIMPLEBUFFER_VPORT, s_pVpMain,
     //   TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_CLEAR,
     // TAG_END);
-    s_pMainBuffer = simpleBufferCreate(0,
-    TAG_SIMPLEBUFFER_VPORT, s_pVpMain,
-    TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_INTERLEAVED,
-    TAG_SIMPLEBUFFER_IS_DBLBUF, 1, //add this line in for double buffering
+    // s_pMainBuffer = simpleBufferCreate(0,
+    // TAG_SIMPLEBUFFER_VPORT, s_pVpMain,
+    // TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_INTERLEAVED,
+    // TAG_SIMPLEBUFFER_IS_DBLBUF, 1, //add this line in for double buffering
+    // TAG_END);
+    s_pTiles = bitmapCreateFromFile("data/tilestest2.bm", 0);
+    s_pMainBuffer = tileBufferCreate(0,
+    TAG_TILEBUFFER_VPORT, s_pVpMain,
+    TAG_TILEBUFFER_BITMAP_FLAGS, BMF_CLEAR | BMF_INTERLEAVED,
+    TAG_TILEBUFFER_BOUND_TILE_X, 11,
+    TAG_TILEBUFFER_BOUND_TILE_Y, 11,
+    TAG_TILEBUFFER_IS_DBLBUF, 1,
+    TAG_TILEBUFFER_TILE_SHIFT, 5,
+    TAG_TILEBUFFER_REDRAW_QUEUE_LENGTH, 100,
+    TAG_TILEBUFFER_TILESET, s_pTiles,
     TAG_END);
 
   paletteLoad("data/menupal.plt", s_pVpScore->pPalette, 32); //replaces palette
@@ -197,6 +211,7 @@ void gameGsCreate(void) {
  
   //systemIsUsed();
   // Load the view
+  tileBufferRedrawAll(s_pMainBuffer);
   viewLoad(s_pView);
 }
 
@@ -212,12 +227,13 @@ void gameGsLoop(void) {
   if(dt < frame_delay){
     timerWaitUs((frame_delay - dt));
   }
+  
   // undraw the airship
-  if(s_hasBGToRestore[s_ubBufferIndex]){
-    blitCopy(s_pBmTestMask[s_ubBufferIndex],0,0,
-    s_pMainBuffer->pBack,s_pPlayerPrevPos[s_ubBufferIndex].uwX,s_pPlayerPrevPos[s_ubBufferIndex].uwY,
-    airship.bw,airship.bh, MINTERM_COOKIE);
-  }
+  // if(s_hasBGToRestore[s_ubBufferIndex]){
+  //   blitCopy(s_pBmTestMask[s_ubBufferIndex],0,0,
+  //   s_pMainBuffer,s_pPlayerPrevPos[s_ubBufferIndex].uwX,s_pPlayerPrevPos[s_ubBufferIndex].uwY,
+  //   airship.bw,airship.bh, MINTERM_COOKIE);
+  // }
   //calculate forces on the airship
 
   //calculate the buoycany force for this altitude
@@ -273,23 +289,23 @@ void gameGsLoop(void) {
     //updatethrottle(0);
   }
 
-  //save BG
-  blitCopy(s_pMainBuffer->pBack,xpos,ypos,
-  s_pBmTestMask[s_ubBufferIndex],0,0,
-  airship.bw,airship.bh,MINTERM_COOKIE);
+  // //save BG
+  // blitCopy(s_pMainBuffer->pBack,xpos,ypos,
+  // s_pBmTestMask[s_ubBufferIndex],0,0,
+  // airship.bw,airship.bh,MINTERM_COOKIE);
 
-  s_hasBGToRestore[s_ubBufferIndex] = 1;
+  // s_hasBGToRestore[s_ubBufferIndex] = 1;
   
-  s_pPlayerPrevPos[s_ubBufferIndex].uwX = xpos;
-  s_pPlayerPrevPos[s_ubBufferIndex].uwY = ypos;
+  // s_pPlayerPrevPos[s_ubBufferIndex].uwX = xpos;
+  // s_pPlayerPrevPos[s_ubBufferIndex].uwY = ypos;
 
-  //**Draw things**
-  //redraw the airship.
-  blitCopyMask(
-    s_pBmShipTest[s_ubBufferIndex],0,0,
-    s_pMainBuffer->pBack,xpos,ypos,
-    airship.bw,airship.bh,s_pBmShipTest_Mask[s_ubBufferIndex]->Planes[0]
-  );
+  // //**Draw things**
+  // //redraw the airship.
+  // blitCopyMask(
+  //   s_pBmShipTest[s_ubBufferIndex],0,0,
+  //   s_pMainBuffer->pBack,xpos,ypos,
+  //   airship.bw,airship.bh,s_pBmShipTest_Mask[s_ubBufferIndex]->Planes[0]
+  // );
   
   //recheck the atmosphere, force calculations
   update_temp(&atmosphere,&constants, airship.pos);

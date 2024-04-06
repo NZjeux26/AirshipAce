@@ -76,7 +76,8 @@
 		"xutility": "c",
 		"state.h": "c",
 		"constants.h": "c",
-		"atmosphere.h": "c"
+		"atmosphere.h": "c",
+		"tag.h": "c"
 	},
 	"cmake.configureOnOpen": false,
 	"C_Cpp.default.compilerPath": "C:\\msys64\\mingw64\\bin\\gcc.exe",
