@@ -114,16 +114,29 @@ void gameGsCreate(void) {
     s_pMainBuffer = tileBufferCreate(0,
     TAG_TILEBUFFER_VPORT, s_pVpMain,
     TAG_TILEBUFFER_BITMAP_FLAGS, BMF_CLEAR | BMF_INTERLEAVED,
-    TAG_TILEBUFFER_BOUND_TILE_X, 11,
-    TAG_TILEBUFFER_BOUND_TILE_Y, 11,
+    TAG_TILEBUFFER_BOUND_TILE_X, 84,
+    TAG_TILEBUFFER_BOUND_TILE_Y, 74,
     TAG_TILEBUFFER_IS_DBLBUF, 1,
-    TAG_TILEBUFFER_TILE_SHIFT, 5,
+    TAG_TILEBUFFER_TILE_SHIFT, 4,
     TAG_TILEBUFFER_REDRAW_QUEUE_LENGTH, 100,
     TAG_TILEBUFFER_TILESET, s_pTiles,
     TAG_END);
 
   paletteLoad("data/menupal.plt", s_pVpScore->pPalette, 32); //replaces palette
-  
+  s_pMainBuffer->pTileData[0][0] = 0;
+  s_pMainBuffer->pTileData[1][0] = 1;
+   s_pMainBuffer->pTileData[2][0] = 2;
+    s_pMainBuffer->pTileData[3][0] = 2;
+     s_pMainBuffer->pTileData[4][0] = 2;
+      s_pMainBuffer->pTileData[5][0] = 2;
+       s_pMainBuffer->pTileData[6][0] = 2;
+        s_pMainBuffer->pTileData[7][0] = 2;
+         s_pMainBuffer->pTileData[9][0] = 3;
+          s_pMainBuffer->pTileData[9][0] = 0;
+           s_pMainBuffer->pTileData[0][1] = 16;
+           s_pMainBuffer->pTileData[1][1] = 17;
+           s_pMainBuffer->pTileData[2][1] = 0;
+            s_pMainBuffer->pTileData[10][0] = 2;
   // pBmBackground = bitmapCreateFromFile("data/menuBG.bm",0);//load the background
   
   // for(UWORD x = 0; x < s_pMainBuffer->uBfrBounds.uwX; x+=16){//fills out the background
