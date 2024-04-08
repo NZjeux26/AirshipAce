@@ -123,20 +123,21 @@ void gameGsCreate(void) {
     TAG_END);
 
   paletteLoad("data/menupal.plt", s_pVpScore->pPalette, 32); //replaces palette
-  s_pMainBuffer->pTileData[0][0] = 0;
-  s_pMainBuffer->pTileData[1][0] = 1;
-   s_pMainBuffer->pTileData[2][0] = 2;
-    s_pMainBuffer->pTileData[3][0] = 2;
-     s_pMainBuffer->pTileData[4][0] = 2;
-      s_pMainBuffer->pTileData[5][0] = 2;
-       s_pMainBuffer->pTileData[6][0] = 2;
-        s_pMainBuffer->pTileData[7][0] = 2;
-         s_pMainBuffer->pTileData[9][0] = 3;
-          s_pMainBuffer->pTileData[9][0] = 0;
-           s_pMainBuffer->pTileData[0][1] = 16;
-           s_pMainBuffer->pTileData[1][1] = 17;
-           s_pMainBuffer->pTileData[2][1] = 0;
-            s_pMainBuffer->pTileData[10][0] = 2;
+  drawBackgroundTiles(tile_data);
+  // s_pMainBuffer->pTileData[0][0] = 0;
+  // s_pMainBuffer->pTileData[1][0] = 1;
+  //  s_pMainBuffer->pTileData[2][0] = 2;
+  //   s_pMainBuffer->pTileData[3][0] = 2;
+  //    s_pMainBuffer->pTileData[4][0] = 2;
+  //     s_pMainBuffer->pTileData[5][0] = 2;
+  //      s_pMainBuffer->pTileData[6][0] = 2;
+  //       s_pMainBuffer->pTileData[7][0] = 2;
+  //        s_pMainBuffer->pTileData[9][0] = 3;
+  //         s_pMainBuffer->pTileData[9][0] = 0;
+  //          s_pMainBuffer->pTileData[0][1] = 16;
+  //          s_pMainBuffer->pTileData[1][1] = 17;
+  //          s_pMainBuffer->pTileData[2][1] = 0;
+  //           s_pMainBuffer->pTileData[10][0] = 2;
   // pBmBackground = bitmapCreateFromFile("data/menuBG.bm",0);//load the background
   
   // for(UWORD x = 0; x < s_pMainBuffer->uBfrBounds.uwX; x+=16){//fills out the background
@@ -369,9 +370,28 @@ void updatethrottle(UBYTE w) {  //bug seems to appear where text for 10000 + see
   }
 }
 
-
 void lightHighScoreCheck(void) {//session based HS keeping until file system stuff cna be sorted.
   if(g_highScore < gSCORE) g_highScore = gSCORE;
 }
 
-
+void drawBackgroundTiles(int tile_data[WIDTH][HEIGHT]){
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+            logWrite("s_pMainBuffer->pTileData[%d][%d] = %d;\n", x, y, tile_data[y][x]); 
+        }
+    }
+}
+// s_pMainBuffer->pTileData[0][0] = 0;
+  // s_pMainBuffer->pTileData[1][0] = 1;
+  //  s_pMainBuffer->pTileData[2][0] = 2;
+  //   s_pMainBuffer->pTileData[3][0] = 2;
+  //    s_pMainBuffer->pTileData[4][0] = 2;
+  //     s_pMainBuffer->pTileData[5][0] = 2;
+  //      s_pMainBuffer->pTileData[6][0] = 2;
+  //       s_pMainBuffer->pTileData[7][0] = 2;
+  //        s_pMainBuffer->pTileData[9][0] = 3;
+  //         s_pMainBuffer->pTileData[9][0] = 0;
+  //          s_pMainBuffer->pTileData[0][1] = 16; This is row 2 pos 0
+  //          s_pMainBuffer->pTileData[1][1] = 17; row 2 pos 2
+  //          s_pMainBuffer->pTileData[2][1] = 0; row 2 pos 3
+  //           s_pMainBuffer->pTileData[10][0] = 2; row 10 pos 0

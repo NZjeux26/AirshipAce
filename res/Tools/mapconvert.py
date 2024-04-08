@@ -32,7 +32,7 @@ output_file = 'tilemap_array.c'
 
 tile_indices = read_json_tilemap(json_file)
 width = 84  # Width of the tilemap
-height = 74  # Height of the tilemap
+height = 75  # Height of the tilemap
 c_array = generate_c_array(tile_indices, width, height)
 
 write_c_array_to_file(c_array, output_file)

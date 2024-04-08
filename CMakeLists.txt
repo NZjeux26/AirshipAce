@@ -3,7 +3,7 @@ project(AirshipAce LANGUAGES ASM C)
 set(ACE_DEBUG ON)
 set(ACE_DEBUG_UAE ON)
 #set(CMAKE_C_STANDARD 17)
-file(GLOB_RECURSE SOURCES src/*.c main.c)
+file(GLOB_RECURSE SOURCES src/*.c main.c tilemap_array.c)
 
 if(ELF2HUNK)
 	set(AirshipAce_EXECUTABLE AirshipAce.elf)
