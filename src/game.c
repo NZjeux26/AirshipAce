@@ -374,13 +374,15 @@ void lightHighScoreCheck(void) {//session based HS keeping until file system stu
   if(g_highScore < gSCORE) g_highScore = gSCORE;
 }
 
-void drawBackgroundTiles(int tile_data[WIDTH][HEIGHT]){
+void drawBackgroundTiles(int tile_data[HEIGHT][WIDTH]){
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
-            logWrite("s_pMainBuffer->pTileData[%d][%d] = %d;\n", x, y, tile_data[y][x]); 
+            //logWrite("s_pMainBuffer->pTileData[%d][%d] = %d;\n", x, y, tile_data[y][x]); 
+            s_pMainBuffer->pTileData[x][y] = tile_data[y][x];
         }
     }
 }
+//Test data
 // s_pMainBuffer->pTileData[0][0] = 0;
   // s_pMainBuffer->pTileData[1][0] = 1;
   //  s_pMainBuffer->pTileData[2][0] = 2;

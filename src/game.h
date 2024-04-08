@@ -8,13 +8,13 @@
 #define WIDTH 84
 #define HEIGHT 75
 
-extern int tile_data[WIDTH][HEIGHT];
+extern int tile_data[HEIGHT][WIDTH];
 
 void gameGsCreate(void);
 void gameGsLoop(void);
 void gameGsDestroy(void);
 void updatethrottle(UBYTE w);
-void drawBackgroundTiles(int tile_data[WIDTH][HEIGHT]);
+void drawBackgroundTiles(int tile_data[HEIGHT][WIDTH]);
 
 typedef struct airship_obj {//struct for player parameters
     fix16_t length;         //Length of the airship for calculations
