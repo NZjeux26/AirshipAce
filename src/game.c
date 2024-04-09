@@ -114,8 +114,8 @@ void gameGsCreate(void) {
     s_pMainBuffer = tileBufferCreate(0,
     TAG_TILEBUFFER_VPORT, s_pVpMain,
     TAG_TILEBUFFER_BITMAP_FLAGS, BMF_CLEAR | BMF_INTERLEAVED,
-    TAG_TILEBUFFER_BOUND_TILE_X, 84,
-    TAG_TILEBUFFER_BOUND_TILE_Y, 74,
+    TAG_TILEBUFFER_BOUND_TILE_X, WIDTH,
+    TAG_TILEBUFFER_BOUND_TILE_Y, HEIGHT,
     TAG_TILEBUFFER_IS_DBLBUF, 1,
     TAG_TILEBUFFER_TILE_SHIFT, 4,
     TAG_TILEBUFFER_REDRAW_QUEUE_LENGTH, 100,
@@ -377,7 +377,8 @@ void lightHighScoreCheck(void) {//session based HS keeping until file system stu
 void drawBackgroundTiles(int tile_data[HEIGHT][WIDTH]){
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
-            //logWrite("s_pMainBuffer->pTileData[%d][%d] = %d;\n", x, y, tile_data[y][x]); 
+            //memCheckIntegrity();
+            logWrite("s_pMainBuffer->pTileData[%d][%d] = %d;\n", x, y, tile_data[y][x]); 
             s_pMainBuffer->pTileData[x][y] = tile_data[y][x];
         }
     }
