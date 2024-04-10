@@ -10,6 +10,7 @@
 #include <ace/managers/state.h>
 #include <ace/managers/rand.h>
 #include <ace/managers/sprite.h>
+#include <ace/managers/bob.h>
 #include <ace/utils/file.h>
 #include <ace/utils/font.h>
 #include <ace/utils/string.h>
@@ -40,19 +41,20 @@ static tTileBufferManager *s_pMainBuffer;
 static tRandManager *s_pRandManager;
 
 //static tBitMap *pBmBackground;
-static tBitMap *s_pBmTestMask[2];
-static tBitMap *s_pBmShipTest[2];
-static tBitMap *s_pBmShipTest_Mask[2];
+static tBitMap *s_pBmTestMask;
+static tBitMap *s_pBmShipTest;
+static tBitMap *s_pBmShipTest_Mask;
 static tBitMap *s_pTiles;
 //arrays holding previous positions of the player and pipes
-tUwCoordYX s_pPlayerPrevPos[2];
-static UBYTE s_hasBGToRestore[2];
-UBYTE s_ubBufferIndex = 0;
+// tUwCoordYX s_pPlayerPrevPos[2];
+// static UBYTE s_hasBGToRestore[2];
+// UBYTE s_ubBufferIndex = 0;
 
 tFont *fallfontsmall; //global for font
 tTextBitMap *throttleXtbitmap;//global for throttle information
 tTextBitMap *throttleYtbitmap;
 
+tBob shipBob;
 //game vars
 char throttleXbuffer[20];
 char throttleYbuffer[20];
@@ -123,21 +125,8 @@ void gameGsCreate(void) {
     TAG_END);
 
   paletteLoad("data/menupal.plt", s_pVpScore->pPalette, 32); //replaces palette
-  drawBackgroundTiles(tile_data);
-  // s_pMainBuffer->pTileData[0][0] = 0;
-  // s_pMainBuffer->pTileData[1][0] = 1;
-  //  s_pMainBuffer->pTileData[2][0] = 2;
-  //   s_pMainBuffer->pTileData[3][0] = 2;
-  //    s_pMainBuffer->pTileData[4][0] = 2;
-  //     s_pMainBuffer->pTileData[5][0] = 2;
-  //      s_pMainBuffer->pTileData[6][0] = 2;
-  //       s_pMainBuffer->pTileData[7][0] = 2;
-  //        s_pMainBuffer->pTileData[9][0] = 3;
-  //         s_pMainBuffer->pTileData[9][0] = 0;
-  //          s_pMainBuffer->pTileData[0][1] = 16;
-  //          s_pMainBuffer->pTileData[1][1] = 17;
-  //          s_pMainBuffer->pTileData[2][1] = 0;
-  //           s_pMainBuffer->pTileData[10][0] = 2;
+  drawBackgroundTiles(tile_data); //build background tiles
+
   // pBmBackground = bitmapCreateFromFile("data/menuBG.bm",0);//load the background
   
   // for(UWORD x = 0; x < s_pMainBuffer->uBfrBounds.uwX; x+=16){//fills out the background
@@ -200,17 +189,23 @@ void gameGsCreate(void) {
   engine.thrust = F16(0); //initial value for thrust, it's calculated each frame along with everything else.
 
   //bitmap masks for keep background under the bitmap
-  s_pBmTestMask[0] = bitmapCreate(airship.bw,airship.bh,5,0); //explictyly using 16 
-  s_pBmTestMask[1] = bitmapCreate(airship.bw,airship.bh,5,0);
+  s_pBmTestMask = bitmapCreate(airship.bw,airship.bh,5,0); //explictyly using 16 
   //Bitmap rect test for double buffering to try fix flickering issues
-  s_pBmShipTest[0] = bitmapCreateFromFile("data/testrect.bm",0);
-  s_pBmShipTest[1] = bitmapCreateFromFile("data/testrect.bm",0);
-  s_pBmShipTest_Mask[0] = bitmapCreateFromFile("data/testrect_mask.bm",0);
-  s_pBmShipTest_Mask[1] = bitmapCreateFromFile("data/testrect_mask.bm",0);
+  s_pBmShipTest = bitmapCreateFromFile("data/testrect.bm",0);
+  s_pBmShipTest_Mask = bitmapCreateFromFile("data/testrect_mask.bm",0);
+ 
 
   //bool to check if the BG needs restored
-  s_hasBGToRestore[0] = 0;
-  s_hasBGToRestore[1] = 0;
+  // s_hasBGToRestore[0] = 0;
+  // s_hasBGToRestore[1] = 0;
+
+  bobManagerCreate(s_pMainBuffer->pScroll->pFront, s_pMainBuffer->pScroll->pBack, s_pMainBuffer->pScroll->uwBmAvailHeight); //32 is a random number choosen
+  bobInit(&shipBob, 
+  airship.bw, airship.bh, 1,
+  bobCalcFrameAddress(s_pBmShipTest,0),bobCalcFrameAddress(s_pBmShipTest_Mask,0),
+  xpos,ypos); //I *think* this is correct
+
+  bobReallocateBgBuffers();
 
   throttleXtbitmap = fontCreateTextBitMapFromStr(fallfontsmall, throttleXbuffer); 
   throttleYtbitmap = fontCreateTextBitMapFromStr(fallfontsmall, throttleXbuffer);
@@ -241,7 +236,7 @@ void gameGsLoop(void) {
   if(dt < frame_delay){
     timerWaitUs((frame_delay - dt));
   }
-  
+  bobBegin(s_pMainBuffer->pScroll->pBack);
   // undraw the airship
   // if(s_hasBGToRestore[s_ubBufferIndex]){
   //   blitCopy(s_pBmTestMask[s_ubBufferIndex],0,0,
@@ -270,7 +265,7 @@ void gameGsLoop(void) {
   fix16_t acceleration_x = fix16_div(net_force_x, fix16_from_int(airship.dryMass)); //mass will need to change to total once everything is added correctly
   logWrite("@throttleY: %d\n", throttle_y);
   logWrite("@throttleX: %d\n", throttle_x);
-  logWrite("@Engine Thrust: %d\n", fix16_to_int(totalthurst));
+  // logWrite("@Engine Thrust: %d\n", fix16_to_int(totalthurst));
   // logWrite("Bforce: %d\n", fix16_to_int(bforce));
   // logWrite("Net = %d\n", fix16_to_int(net_force_y));
   // logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
@@ -283,26 +278,26 @@ void gameGsLoop(void) {
   
   ypos = fix16_to_int(airship.pos.y); //this needed to be jsut assigned and not added which was why is was fucking off to the moon
   xpos = fix16_to_int(airship.pos.x);
-  logWrite("AirshipPOS %d\n", ypos);
+  //logWrite("AirshipPOS %d\n", ypos);
   
   //controls to move the player
   if(keyCheck(KEY_D)){  //move player right
     if(throttle_x >= -100 || throttle_x <= 100) throttle_x +=1;
-    updatethrottle(1);
   }
   if(keyCheck(KEY_A)){  //move player left
     if(throttle_x >= -100 || throttle_x <= 100) throttle_x -=1;
-   // updatethrottle(1);
   }
   if(keyCheck(KEY_S)){ //move player down
     if(throttle_x >= -100 || throttle_x <= 100) throttle_y +=1;
-    //updatethrottle(0);
   }
   if(keyCheck(KEY_W)){ //move player up
     if(throttle_x >= -100 || throttle_x <= 100) throttle_y -=1;
-    //updatethrottle(0);
   }
+  shipBob.sPos.uwX = xpos;
+  shipBob.sPos.uwY = ypos;
 
+  bobPush(&shipBob);
+  bobEnd();
   // //save BG
   // blitCopy(s_pMainBuffer->pBack,xpos,ypos,
   // s_pBmTestMask[s_ubBufferIndex],0,0,
@@ -332,8 +327,10 @@ void gameGsLoop(void) {
   
   last_frame = current_time;
   //update the index
-  s_ubBufferIndex = !s_ubBufferIndex;
+  //s_ubBufferIndex = !s_ubBufferIndex;
   //delayUntilNextFrame();
+  bobPushingDone();
+  
   viewProcessManagers(s_pView);//might be wrong
   copProcessBlocks();
   systemIdleBegin();
@@ -345,29 +342,13 @@ void gameGsLoop(void) {
 void gameGsDestroy(void) {
   logBlockBegin("gameGsDestroy");
   systemUse();
-  bitmapDestroy(s_pBmShipTest[0]);
-  bitmapDestroy(s_pBmShipTest[1]);
-  bitmapDestroy(s_pBmShipTest_Mask[0]);
-  bitmapDestroy(s_pBmShipTest_Mask[1]);
+  bitmapDestroy(s_pBmShipTest);
+
+  bitmapDestroy(s_pBmShipTest_Mask);
+
   // This will also destroy all associated viewports and viewport managers
   viewDestroy(s_pView);
   logBlockEnd("gameGsDestroy");
-}
-
-void updatethrottle(UBYTE w) {  //bug seems to appear where text for 10000 + seems to be erroring with: ERR: Text '10000' doesn't fit in text bitmap, text needs: 33,8, bitmap size: 32,8
-  if(w > 0){
-    //convert the score from int to string for drawing
-    stringDecimalFromULong(throttle_x, throttleXbuffer);
-    blitRect(s_pScoreBuffer->pBack, 75, 30, throttleXtbitmap->uwActualWidth, throttleXtbitmap->uwActualHeight, 0); //erase scorebuffer
-    fontFillTextBitMap(fallfontsmall, throttleXtbitmap, throttleXbuffer);//refill
-    fontDrawTextBitMap(s_pScoreBuffer->pBack, throttleXtbitmap, 75,30, 6, FONT_COOKIE);  //draw
-  }
-  else{
-    stringDecimalFromULong(throttle_y, throttleYbuffer);
-    blitRect(s_pScoreBuffer->pBack, 75, 20, throttleYtbitmap->uwActualWidth, throttleYtbitmap->uwActualHeight, 0); //erase scorebuffer
-    fontFillTextBitMap(fallfontsmall, throttleYtbitmap, throttleYbuffer);//refill
-    fontDrawTextBitMap(s_pScoreBuffer->pBack, throttleYtbitmap, 75,20, 6, FONT_COOKIE);  //draw
-  }
 }
 
 void lightHighScoreCheck(void) {//session based HS keeping until file system stuff cna be sorted.
@@ -378,23 +359,8 @@ void drawBackgroundTiles(int tile_data[HEIGHT][WIDTH]){
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
             //memCheckIntegrity();
-            logWrite("s_pMainBuffer->pTileData[%d][%d] = %d;\n", x, y, tile_data[y][x]); 
+            //logWrite("s_pMainBuffer->pTileData[%d][%d] = %d;\n", x, y, tile_data[y][x]); 
             s_pMainBuffer->pTileData[x][y] = tile_data[y][x];
         }
     }
 }
-//Test data
-// s_pMainBuffer->pTileData[0][0] = 0;
-  // s_pMainBuffer->pTileData[1][0] = 1;
-  //  s_pMainBuffer->pTileData[2][0] = 2;
-  //   s_pMainBuffer->pTileData[3][0] = 2;
-  //    s_pMainBuffer->pTileData[4][0] = 2;
-  //     s_pMainBuffer->pTileData[5][0] = 2;
-  //      s_pMainBuffer->pTileData[6][0] = 2;
-  //       s_pMainBuffer->pTileData[7][0] = 2;
-  //        s_pMainBuffer->pTileData[9][0] = 3;
-  //         s_pMainBuffer->pTileData[9][0] = 0;
-  //          s_pMainBuffer->pTileData[0][1] = 16; This is row 2 pos 0
-  //          s_pMainBuffer->pTileData[1][1] = 17; row 2 pos 2
-  //          s_pMainBuffer->pTileData[2][1] = 0; row 2 pos 3
-  //           s_pMainBuffer->pTileData[10][0] = 2; row 10 pos 0
