@@ -37,7 +37,6 @@ static tVPort *s_pVpScore; // Viewport for score
 static tSimpleBufferManager *s_pScoreBuffer;
 static tVPort *s_pVpMain; // Viewport for playfield
 static tTileBufferManager *s_pMainBuffer;
-//static tSimpleBufferManager *s_pMainBuffer;
 static tRandManager *s_pRandManager;
 
 //static tBitMap *pBmBackground;
@@ -45,14 +44,11 @@ static tBitMap *s_pBmTestMask;
 static tBitMap *s_pBmShipTest;
 static tBitMap *s_pBmShipTest_Mask;
 static tBitMap *s_pTiles;
-//arrays holding previous positions of the player and pipes
-// tUwCoordYX s_pPlayerPrevPos[2];
-// static UBYTE s_hasBGToRestore[2];
-// UBYTE s_ubBufferIndex = 0;
 
 tFont *fallfontsmall; //global for font
 tTextBitMap *throttleXtbitmap;//global for throttle information
 tTextBitMap *throttleYtbitmap;
+tCameraManager *pCamera;
 
 tBob shipBob;
 //game vars
@@ -103,17 +99,9 @@ void gameGsCreate(void) {
     TAG_VPORT_VIEW, s_pView,
     TAG_VPORT_BPP, 5,
   TAG_END);
-    // s_pMainBuffer = simpleBufferCreate(0,
-    // TAG_SIMPLEBUFFER_VPORT, s_pVpMain,
-    //   TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_CLEAR,
-    // TAG_END);
-    // s_pMainBuffer = simpleBufferCreate(0,
-    // TAG_SIMPLEBUFFER_VPORT, s_pVpMain,
-    // TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_INTERLEAVED,
-    // TAG_SIMPLEBUFFER_IS_DBLBUF, 1, //add this line in for double buffering
-    // TAG_END);
-    s_pTiles = bitmapCreateFromFile("data/tilestest2.bm", 0);
-    s_pMainBuffer = tileBufferCreate(0,
+
+  s_pTiles = bitmapCreateFromFile("data/tilestest2.bm", 0);
+  s_pMainBuffer = tileBufferCreate(0,
     TAG_TILEBUFFER_VPORT, s_pVpMain,
     TAG_TILEBUFFER_BITMAP_FLAGS, BMF_CLEAR | BMF_INTERLEAVED,
     TAG_TILEBUFFER_BOUND_TILE_X, WIDTH,
@@ -126,16 +114,9 @@ void gameGsCreate(void) {
 
   paletteLoad("data/menupal.plt", s_pVpScore->pPalette, 32); //replaces palette
   drawBackgroundTiles(tile_data); //build background tiles
-
-  // pBmBackground = bitmapCreateFromFile("data/menuBG.bm",0);//load the background
-  
-  // for(UWORD x = 0; x < s_pMainBuffer->uBfrBounds.uwX; x+=16){//fills out the background
-  //   for(UWORD y = 0; y < s_pMainBuffer->uBfrBounds.uwY; y+=16){
-  //     blitCopyAligned(pBmBackground,x,y,s_pMainBuffer->pBack,x,y,16,16);
-  //     blitCopyAligned(pBmBackground,x,y,s_pMainBuffer->pFront,x,y,16,16);
-  //   }
-  // }
- 
+  pCamera = s_pMainBuffer->pCamera;
+  pCamera->uPos.uwX = xpos;
+  pCamera->uPos.uwY = ypos;
   // Draw line separating score VPort and main VPort, leave one line blank after it
   blitLine(
     s_pScoreBuffer->pBack,
@@ -189,15 +170,10 @@ void gameGsCreate(void) {
   engine.thrust = F16(0); //initial value for thrust, it's calculated each frame along with everything else.
 
   //bitmap masks for keep background under the bitmap
-  s_pBmTestMask = bitmapCreate(airship.bw,airship.bh,5,0); //explictyly using 16 
+  s_pBmTestMask  = bitmapCreate(airship.bw,airship.bh,5,0); //explictyly using 16 
   //Bitmap rect test for double buffering to try fix flickering issues
   s_pBmShipTest = bitmapCreateFromFile("data/testrect.bm",0);
   s_pBmShipTest_Mask = bitmapCreateFromFile("data/testrect_mask.bm",0);
- 
-
-  //bool to check if the BG needs restored
-  // s_hasBGToRestore[0] = 0;
-  // s_hasBGToRestore[1] = 0;
 
   bobManagerCreate(s_pMainBuffer->pScroll->pFront, s_pMainBuffer->pScroll->pBack, s_pMainBuffer->pScroll->uwBmAvailHeight); //32 is a random number choosen
   bobInit(&shipBob, 
@@ -231,19 +207,15 @@ void gameGsLoop(void) {
     gameExit();
   }
   ULONG current_time = timerGet();
-
+  
   ULONG dt = timerGetDelta(last_frame, current_time);
   if(dt < frame_delay){
     timerWaitUs((frame_delay - dt));
   }
+  //undraw the airship
   bobBegin(s_pMainBuffer->pScroll->pBack);
-  // undraw the airship
-  // if(s_hasBGToRestore[s_ubBufferIndex]){
-  //   blitCopy(s_pBmTestMask[s_ubBufferIndex],0,0,
-  //   s_pMainBuffer,s_pPlayerPrevPos[s_ubBufferIndex].uwX,s_pPlayerPrevPos[s_ubBufferIndex].uwY,
-  //   airship.bw,airship.bh, MINTERM_COOKIE);
-  // }
-  //calculate forces on the airship
+
+  //**calculate forces on the airship**
 
   //calculate the buoycany force for this altitude
   fix16_t bforce = cal_buoyancy_force(&constants, atmosphere.denisty, airship.volume);
@@ -260,11 +232,13 @@ void gameGsLoop(void) {
   //calculate the netforce acting on the ship and the acceleration from that
   fix16_t net_force_y = fix16_add(fix16_sub(fix16_sub(bforce,force_gravity),y_drag),enginethrust_y);//some of these fix16 sub/add might need replaced 
   fix16_t net_force_x = fix16_sub(enginethrust_x,x_drag);
+
   //calculate the acceleration on the ship taking into account all the forces acting on it.
   fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
   fix16_t acceleration_x = fix16_div(net_force_x, fix16_from_int(airship.dryMass)); //mass will need to change to total once everything is added correctly
   logWrite("@throttleY: %d\n", throttle_y);
   logWrite("@throttleX: %d\n", throttle_x);
+
   // logWrite("@Engine Thrust: %d\n", fix16_to_int(totalthurst));
   // logWrite("Bforce: %d\n", fix16_to_int(bforce));
   // logWrite("Net = %d\n", fix16_to_int(net_force_y));
@@ -278,6 +252,7 @@ void gameGsLoop(void) {
   
   ypos = fix16_to_int(airship.pos.y); //this needed to be jsut assigned and not added which was why is was fucking off to the moon
   xpos = fix16_to_int(airship.pos.x);
+ 
   //logWrite("AirshipPOS %d\n", ypos);
   
   //controls to move the player
@@ -293,30 +268,16 @@ void gameGsLoop(void) {
   if(keyCheck(KEY_W)){ //move player up
     if(throttle_x >= -100 || throttle_x <= 100) throttle_y -=1;
   }
+  //update the bob positions with the ships xpos and ypos
   shipBob.sPos.uwX = xpos;
   shipBob.sPos.uwY = ypos;
-
+  cameraCenterAt(pCamera, xpos,ypos);
+  //cameraSetCoord(pCamera,xpos-10,ypos-10);
+  // s_pMainBuffer->pCamera->uPos.uwY = shipBob.sPos.uwY;
   bobPush(&shipBob);
   bobEnd();
-  // //save BG
-  // blitCopy(s_pMainBuffer->pBack,xpos,ypos,
-  // s_pBmTestMask[s_ubBufferIndex],0,0,
-  // airship.bw,airship.bh,MINTERM_COOKIE);
-
-  // s_hasBGToRestore[s_ubBufferIndex] = 1;
   
-  // s_pPlayerPrevPos[s_ubBufferIndex].uwX = xpos;
-  // s_pPlayerPrevPos[s_ubBufferIndex].uwY = ypos;
-
-  // //**Draw things**
-  // //redraw the airship.
-  // blitCopyMask(
-  //   s_pBmShipTest[s_ubBufferIndex],0,0,
-  //   s_pMainBuffer->pBack,xpos,ypos,
-  //   airship.bw,airship.bh,s_pBmShipTest_Mask[s_ubBufferIndex]->Planes[0]
-  // );
-  
-  //recheck the atmosphere, force calculations
+  //recal the atmosphere, force calculations
   update_temp(&atmosphere,&constants, airship.pos);
   update_pressure(&atmosphere,&constants, airship.pos);
   update_density(&atmosphere, &constants);
@@ -326,9 +287,7 @@ void gameGsLoop(void) {
   // logWrite("Density: %d\n", fix16_to_int(atmosphere.denisty));
   
   last_frame = current_time;
-  //update the index
-  //s_ubBufferIndex = !s_ubBufferIndex;
-  //delayUntilNextFrame();
+  //finished with all bobs
   bobPushingDone();
   
   viewProcessManagers(s_pView);//might be wrong
