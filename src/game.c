@@ -271,7 +271,15 @@ void gameGsLoop(void) {
   //update the bob positions with the ships xpos and ypos
   shipBob.sPos.uwX = xpos;
   shipBob.sPos.uwY = ypos;
-  cameraCenterAt(pCamera, xpos,ypos);
+  int threshold = 20;
+  if(xpos < threshold || xpos > PLAYFIELD_WIDTH - threshold){
+    //cameraCenterAt(pCamera, xpos, ypos);
+    cameraMoveBy(pCamera, 1, 0);
+  }
+  else if(ypos < threshold || ypos > PLAYFIELD_HEIGHT - threshold){
+    cameraMoveBy(pCamera, 0, 1);//what if it'se neg direction? 
+  }
+  //cameraCenterAt(pCamera, xpos-15,ypos-15);
   //cameraSetCoord(pCamera,xpos-10,ypos-10);
   // s_pMainBuffer->pCamera->uPos.uwY = shipBob.sPos.uwY;
   bobPush(&shipBob);
