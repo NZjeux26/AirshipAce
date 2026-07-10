@@ -19,13 +19,6 @@
 
 #define false 0
 #define true 1
-#define SCORE_COLOR 1
-#define WALL_HEIGHT 1
-#define WALL_COLOR 1
-#define PADDLE_SPEED 2
-#define MAXPIPES 4
-#define MAXBIRDS 5
-#define BIRD_BG_BUFFER_WIDTH 32//CEIL_TO_FACTOR(16,16)
 //-------------------------------------------------------------- NEW STUFF START
 //AMiga Pal 320x256
 #define PLAYFIELD_HEIGHT (256-32) //32 for the top viewport height
@@ -236,8 +229,8 @@ void gameGsLoop(void) {
   //calculate the acceleration on the ship taking into account all the forces acting on it.
   fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
   fix16_t acceleration_x = fix16_div(net_force_x, fix16_from_int(airship.dryMass)); //mass will need to change to total once everything is added correctly
-  logWrite("@throttleY: %d\n", throttle_y);
-  logWrite("@throttleX: %d\n", throttle_x);
+  //logWrite("@throttleY: %d\n", throttle_y);
+  //logWrite("@throttleX: %d\n", throttle_x);
 
   // logWrite("@Engine Thrust: %d\n", fix16_to_int(totalthurst));
   // logWrite("Bforce: %d\n", fix16_to_int(bforce));
@@ -271,10 +264,12 @@ void gameGsLoop(void) {
   //update the bob positions with the ships xpos and ypos
   shipBob.sPos.uwX = xpos;
   shipBob.sPos.uwY = ypos;
+  
+  //camera setup
   int threshold = 20;
   if(xpos < threshold || xpos > PLAYFIELD_WIDTH - threshold){
-    //cameraCenterAt(pCamera, xpos, ypos);
-    cameraMoveBy(pCamera, 1, 0);
+    cameraCenterAt(pCamera, xpos, ypos);
+    //cameraMoveBy(pCamera, 1, 0);
   }
   else if(ypos < threshold || ypos > PLAYFIELD_HEIGHT - threshold){
     cameraMoveBy(pCamera, 0, 1);//what if it'se neg direction? 
