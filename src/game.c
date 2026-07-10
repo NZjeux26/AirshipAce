@@ -23,6 +23,7 @@
 //AMiga Pal 320x256
 #define PLAYFIELD_HEIGHT (256-32) //32 for the top viewport height
 #define PLAYFIELD_WIDTH (320)
+#define GROUND_HEIGHT (PLAYFIELD_HEIGHT) //32 for the top viewport height
 #define FRAME_SEC 20
 
 static tView *s_pView; // View containing all the viewports
@@ -74,26 +75,24 @@ void gameGsCreate(void) {
 
   s_pRandManager = randCreate(1+(sRayPos.bfPosY << 8), 1 + sRayPos.bfPosX);
 
-  s_pView = viewCreate(0,TAG_VIEW_GLOBAL_PALETTE, 1,TAG_END);
-  
-  // Viewport for score bar - on top of screen
+  s_pView = viewCreate(0,TAG_VIEW_GLOBAL_PALETTE, 1,TAG_END); // Important thing here, you can set different palettes for the different viewports.
+
+  //The order of the viewport creation is important, the height starts from the 0 line, then the next viewport is created below it, and so on. So the order of creation is important.
+  s_pVpMain = vPortCreate(0,
+    TAG_VPORT_VIEW, s_pView,
+    TAG_VPORT_BPP, 5,
+    TAG_VPORT_HEIGHT, PLAYFIELD_HEIGHT,
+  TAG_END);
+
+   // Viewport for score bar - on top of screen
   s_pVpScore = vPortCreate(0,
     TAG_VPORT_VIEW, s_pView,
     TAG_VPORT_BPP, 5,
     TAG_VPORT_HEIGHT, 32,
   TAG_END);
-  s_pScoreBuffer = simpleBufferCreate(0,
-    TAG_SIMPLEBUFFER_VPORT, s_pVpScore,
-    TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_CLEAR,
-  TAG_END);
-
-  // Now let's do the same for main playfield
-  s_pVpMain = vPortCreate(0,
-    TAG_VPORT_VIEW, s_pView,
-    TAG_VPORT_BPP, 5,
-  TAG_END);
 
   s_pTiles = bitmapCreateFromPath("data/tilestest2.bm", 0);
+  
   s_pMainBuffer = tileBufferCreate(0,
     TAG_TILEBUFFER_VPORT, s_pVpMain,
     TAG_TILEBUFFER_BITMAP_FLAGS, BMF_CLEAR | BMF_INTERLEAVED,
@@ -105,19 +104,27 @@ void gameGsCreate(void) {
     TAG_TILEBUFFER_TILESET, s_pTiles,
     TAG_END);
 
-  paletteLoadFromPath("data/menupal.plt", s_pVpScore->pPalette, 32); //replaces palette
+  s_pScoreBuffer = simpleBufferCreate(0,
+    TAG_SIMPLEBUFFER_VPORT, s_pVpScore,
+    TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_CLEAR,
+  TAG_END);
+
+  //For a global palette you need to load the palette into the first viewport.
+  paletteLoadFromPath("data/menupal.plt", s_pVpMain->pPalette, 32); 
   drawBackgroundTiles(tile_data); //build background tiles
   pCamera = s_pMainBuffer->pCamera;
   pCamera->uPos.uwX = xpos;
   pCamera->uPos.uwY = ypos;
-  // Draw line separating score VPort and main VPort, leave one line blank after it
-  blitLine(
-    s_pScoreBuffer->pBack,
-    0, s_pVpScore->uwHeight - 2,
-    s_pVpScore->uwWidth - 1, s_pVpScore->uwHeight - 2,
-    26, 0xFFFF, 0 // Try patterns 0xAAAA, 0xEEEE, etc.
-  );
+  
+  // // Draw line separating score VPort and main VPort, leave one line blank after it
+  // blitLine(
+  //   s_pScoreBuffer->pBack,
+  //   0, s_pVpScore->uwHeight + 2,
+  //   s_pVpScore->uwWidth - 1, s_pVpScore->uwHeight - 2,
+  //   26, 0xFFFF, 0 // Try patterns 0xAAAA, 0xEEEE, etc.
+  // );
 
+  //create the throttle text bitmap buffers.
   throttle_x = 9999;
   throttle_y = 9999;
 
@@ -132,9 +139,9 @@ void gameGsCreate(void) {
   //create the atmosphere
   constants = constants_init(); //setup the constants
   create_atmosphere(&atmosphere,&constants); //create the three parameters with the sealevel constants
-  logWrite("Temp1: %d\n", fix16_to_int(atmosphere.temperature));
-  logWrite("Pressure1: %d\n", fix16_to_int(atmosphere.pressure));
-  logWrite("Density1: %d\n", fix16_to_int(atmosphere.denisty));
+  logWrite("LOG Temp1: %d\n", fix16_to_int(atmosphere.temperature));
+  logWrite("LOG Pressure1: %d\n", fix16_to_int(atmosphere.pressure));
+  logWrite("LOG Density1: %d\n", fix16_to_int(atmosphere.denisty));
   
   //create the airship
   airship.pos = createVector2D(F16(PLAYFIELD_WIDTH / 2), F16(0));
@@ -177,7 +184,7 @@ void gameGsCreate(void) {
   bobReallocateBuffers();
 
   throttleXtbitmap = fontCreateTextBitMapFromStr(fallfontsmall, throttleXbuffer); 
-  throttleYtbitmap = fontCreateTextBitMapFromStr(fallfontsmall, throttleXbuffer);
+  throttleYtbitmap = fontCreateTextBitMapFromStr(fallfontsmall, throttleYbuffer);
   
   startTime = timerGet();
   frame_delay = 50 / 1000;
@@ -243,7 +250,7 @@ void gameGsLoop(void) {
   airship.pos.y = fix16_add(airship.pos.y, airship.yvel);
   airship.pos.x = fix16_add(airship.pos.x,airship.xvel);
   
-  ypos = fix16_to_int(airship.pos.y); //this needed to be jsut assigned and not added which was why is was fucking off to the moon
+  ypos = GROUND_HEIGHT - fix16_to_int(airship.pos.y);//this needed to be jsut assigned and not added which was why is was fucking off to the moon
   xpos = fix16_to_int(airship.pos.x);
  
   //logWrite("AirshipPOS %d\n", ypos);
