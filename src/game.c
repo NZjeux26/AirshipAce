@@ -100,7 +100,7 @@ void gameGsCreate(void) {
     TAG_VPORT_BPP, 5,
   TAG_END);
 
-  s_pTiles = bitmapCreateFromFile("data/tilestest2.bm", 0);
+  s_pTiles = bitmapCreateFromPath("data/tilestest2.bm", 0);
   s_pMainBuffer = tileBufferCreate(0,
     TAG_TILEBUFFER_VPORT, s_pVpMain,
     TAG_TILEBUFFER_BITMAP_FLAGS, BMF_CLEAR | BMF_INTERLEAVED,
@@ -112,7 +112,7 @@ void gameGsCreate(void) {
     TAG_TILEBUFFER_TILESET, s_pTiles,
     TAG_END);
 
-  paletteLoad("data/menupal.plt", s_pVpScore->pPalette, 32); //replaces palette
+  paletteLoadFromPath("data/menupal.plt", s_pVpScore->pPalette, 32); //replaces palette
   drawBackgroundTiles(tile_data); //build background tiles
   pCamera = s_pMainBuffer->pCamera;
   pCamera->uPos.uwX = xpos;
@@ -128,7 +128,7 @@ void gameGsCreate(void) {
   throttle_x = 9999;
   throttle_y = 9999;
 
-  fallfontsmall = fontCreate("data/myacefont.fnt");//create font
+  fallfontsmall = fontCreateFromPath("data/myacefont.fnt");//create font
 
   tTextBitMap *highscorebitmap = fontCreateTextBitMapFromStr(fallfontsmall, "Throttle X ");
   fontDrawTextBitMap(s_pScoreBuffer->pBack, highscorebitmap, 0,10, 8, FONT_COOKIE);
@@ -172,8 +172,8 @@ void gameGsCreate(void) {
   //bitmap masks for keep background under the bitmap
   s_pBmTestMask  = bitmapCreate(airship.bw,airship.bh,5,0); //explictyly using 16 
   //Bitmap rect test for double buffering to try fix flickering issues
-  s_pBmShipTest = bitmapCreateFromFile("data/testrect.bm",0);
-  s_pBmShipTest_Mask = bitmapCreateFromFile("data/testrect_mask.bm",0);
+  s_pBmShipTest = bitmapCreateFromPath("data/testrect.bm",0);
+  s_pBmShipTest_Mask = bitmapCreateFromPath("data/testrect_mask.bm",0);
 
   bobManagerCreate(s_pMainBuffer->pScroll->pFront, s_pMainBuffer->pScroll->pBack, s_pMainBuffer->pScroll->uwBmAvailHeight); //32 is a random number choosen
   bobInit(&shipBob, 
@@ -181,7 +181,7 @@ void gameGsCreate(void) {
   bobCalcFrameAddress(s_pBmShipTest,0),bobCalcFrameAddress(s_pBmShipTest_Mask,0),
   xpos,ypos); //I *think* this is correct
 
-  bobReallocateBgBuffers();
+  bobReallocateBuffers();
 
   throttleXtbitmap = fontCreateTextBitMapFromStr(fallfontsmall, throttleXbuffer); 
   throttleYtbitmap = fontCreateTextBitMapFromStr(fallfontsmall, throttleXbuffer);

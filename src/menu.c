@@ -30,16 +30,16 @@ void menuGsCreate(void){
     s_pVpMain = vPortCreate(0, TAG_VPORT_VIEW, s_pMenuView, TAG_VPORT_BPP, 5, TAG_END);
     s_pMainBuffer = simpleBufferCreate(0,TAG_SIMPLEBUFFER_VPORT, s_pVpMain, TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_CLEAR, TAG_END);
 
-    paletteLoad("data/menupal.plt",s_pVpMain->pPalette, 32); //load palette
+    paletteLoadFromPath("data/menupal.plt",s_pVpMain->pPalette, 32); //load palette
     
-    mBmBackground = bitmapCreateFromFile("data/menuBG.bm",0);//load the BG
+    mBmBackground = bitmapCreateFromPath("data/menuBG.bm",0);//load the BG
      for(UWORD x = 0; x < s_pMainBuffer->uBfrBounds.uwX; x+=16){//fills out the background
         for(UWORD y = 0; y < s_pMainBuffer->uBfrBounds.uwY; y+=16){
             blitCopyAligned(mBmBackground,x,y,s_pMainBuffer->pBack,x,y,16,16);
-            //blitCopyAligned(mBmBackground,x,y,s_pMainBuffer->pFront,x,y,16,16);//this line isn't actually needed
+            blitCopyAligned(mBmBackground,x,y,s_pMainBuffer->pFront,x,y,16,16);//this line isn't actually needed
         }
      } 
-    menufont = fontCreate("data/myacefont.fnt");
+    menufont = fontCreateFromPath("data/myacefont.fnt");
     menutextbitmap = fontCreateTextBitMapFromStr(menufont, "AIRSHIPS");
     fontDrawTextBitMap(s_pMainBuffer->pBack, menutextbitmap, MENU_WIDTH / 2 - 30, MENU_HEIGHT / 2, 30, FONT_COOKIE);
 

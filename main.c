@@ -1,5 +1,5 @@
 /*Use this only if you want to enable logging to file instead of UAE console (heavy performance hit, not recommended)*/ 
-//#define GENERIC_MAIN_LOG_PATH "game.log"
+#define GENERIC_MAIN_LOG_PATH "game.log"
 
 #include <ace/generic/main.h>
 #include <ace/managers/key.h>
@@ -21,7 +21,7 @@ void genericCreate(void) {
   g_pStateManager = stateManagerCreate();
   g_pGameState = stateCreate(gameGsCreate, gameGsLoop, gameGsDestroy, 0, 0);
   g_pMenuState = stateCreate(menuGsCreate, menuGsLoop, menuGsDestroy, 0, 0);
-  statePush(g_pStateManager, g_pGameState);
+  statePush(g_pStateManager, g_pMenuState);
 }
 
 void genericProcess(void) {

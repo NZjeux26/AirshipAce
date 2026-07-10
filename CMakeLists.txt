@@ -34,7 +34,7 @@ message(STATUS "dst: ${DATA_DIR}/menupal.plt")
 set(RES_DIR ${CMAKE_CURRENT_LIST_DIR}/res)
 set(DATA_DIR ${CMAKE_CURRENT_BINARY_DIR}/data)
 file(MAKE_DIRECTORY ${DATA_DIR})
-convertPalette(${AirshipAce_EXECUTABLE} ${RES_DIR}/Palettes/MarsT1.gpl ${DATA_DIR}menupal.plt)
+#convertPalette(${AirshipAce_EXECUTABLE} ${RES_DIR}/Palettes/MarsT1.gpl ${DATA_DIR}menupal.plt)
 #convertBitmaps(${AirshipAce_EXECUTABLE} ${DATA_DIR}/menupal.plt ${RES_DIR}/ConceptArt/testBG2.png ${DATA_DIR}/menuBG.bm)
 
 # Version stuff

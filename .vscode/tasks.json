@@ -10,6 +10,7 @@
 			"group": "build",
 			"args": [
 				"..",
+				"-DCMAKE_TOOLCHAIN_FILE=../deps/AmigaCMakeCrossToolchains/m68k-amigaos-gcc10.cmake",
 				"-DACE_DEBUG=ON",
 				"-DGAME_DEBUG=ON",
 				"-DGAME_DEBUG_AI=OFF",
@@ -26,7 +27,8 @@
 			"command": "cmake",
 			"group": "build",
 			"args": [
-				"..",
+				"..CMAKE_TOOLCHAIN_FILE=../deps/AmigaCMakeCrossToolchains/m68k-amigaos-gcc10.cmake",
+				"-D",
 				"-DACE_DEBUG=ON",
 				"-DGAME_DEBUG=ON",
 				"-DGAME_DEBUG_AI=ON",
@@ -43,7 +45,8 @@
 			"command": "cmake",
 			"group": "build",
 			"args": [
-				"..",
+				"..CMAKE_TOOLCHAIN_FILE=../deps/AmigaCMakeCrossToolchains/m68k-amigaos-gcc10.cmake",
+				"-D",
 				"-DACE_DEBUG=OFF",
 				"-DGAME_DEBUG=OFF",
 				"-DGAME_DEBUG_AI=OFF",
