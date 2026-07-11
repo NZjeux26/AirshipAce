@@ -24,6 +24,8 @@
 #define PLAYFIELD_HEIGHT (256-32) //32 for the top viewport height
 #define PLAYFIELD_WIDTH (320)
 #define GROUND_HEIGHT (PLAYFIELD_HEIGHT) //32 for the top viewport height
+#define CAMERA_MARGIN_X 40 // Tunable follow behavior - how close to the edge before camera engages
+#define CAMERA_MARGIN_Y 40
 #define FRAME_SEC 20
 
 static tView *s_pView; // View containing all the viewports
@@ -273,17 +275,8 @@ void gameGsLoop(void) {
   shipBob.sPos.uwY = ypos;
   
   //camera setup
-  int threshold = 20;
-  if(xpos < threshold || xpos > PLAYFIELD_WIDTH - threshold){
-    cameraCenterAt(pCamera, xpos, ypos);
-    //cameraMoveBy(pCamera, 1, 0);
-  }
-  else if(ypos < threshold || ypos > PLAYFIELD_HEIGHT - threshold){
-    cameraMoveBy(pCamera, 0, 1);//what if it'se neg direction? 
-  }
-  //cameraCenterAt(pCamera, xpos-15,ypos-15);
-  //cameraSetCoord(pCamera,xpos-10,ypos-10);
-  // s_pMainBuffer->pCamera->uPos.uwY = shipBob.sPos.uwY;
+  cameraFollowTarget(pCamera, s_pVpMain, xpos, ypos);
+
   bobPush(&shipBob);
   bobEnd();
   
@@ -332,4 +325,32 @@ void drawBackgroundTiles(int tile_data[HEIGHT][WIDTH]){
             s_pMainBuffer->pTileData[x][y] = tile_data[y][x];
         }
     }
+}
+
+/**
+ * Moves the camera to keep (wTargetX, wTargetY) within a margin of the
+ * viewport edges. Correction is proportional to how far past the margin
+ * the target is, so fast movement gets caught up rather than lagging.
+ */
+
+void cameraFollowTarget(tCameraManager *pCamera,tVPort *pVPort, WORD targetX, WORD targetY) {
+  WORD wScreenX = targetX - pCamera->uPos.uwX; // ship pos relative to visible window
+  WORD wScreenY = targetY - pCamera->uPos.uwY;
+
+  WORD wDx = 0, wDy = 0;
+  if(wScreenX < CAMERA_MARGIN_X) {
+    wDx = wScreenX - CAMERA_MARGIN_X;   // negative: ship near left edge
+  } else if(wScreenX > pVPort->uwWidth - CAMERA_MARGIN_X) {
+    wDx = wScreenX - (pVPort->uwWidth - CAMERA_MARGIN_X);  // positive: ship near right edge
+  }
+
+  if(wScreenY < CAMERA_MARGIN_Y) {
+    wDy = wScreenY - CAMERA_MARGIN_Y;   // negative: ship near top edge
+  } else if(wScreenY > pVPort->uwHeight - CAMERA_MARGIN_Y) {
+    wDy = wScreenY - (pVPort->uwHeight - CAMERA_MARGIN_Y);  // positive: ship near bottom edge
+  }
+
+  if(wDx || wDy) {
+    cameraMoveBy(pCamera, wDx, wDy);
+  }
 }

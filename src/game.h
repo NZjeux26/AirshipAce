@@ -2,6 +2,7 @@
 #define _GAME_H_
 
 #include <ace/utils/file.h>
+#include <ace/managers/viewport/camera.h>
 #include <fixmath/fix16.h>
 #include "atmosphere.h"
 
@@ -15,6 +16,7 @@ void gameGsLoop(void);
 void gameGsDestroy(void);
 void updatethrottle(UBYTE w);
 void drawBackgroundTiles(int tile_data[HEIGHT][WIDTH]);
+void cameraFollowTarget(tCameraManager *pCamera,tVPort *pVPort, WORD targetX, WORD targetY);
 
 typedef struct airship_obj {//struct for player parameters
     fix16_t length;         //Length of the airship for calculations
