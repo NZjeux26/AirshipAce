@@ -17,6 +17,8 @@ void gameGsDestroy(void);
 void updatethrottle(UBYTE w);
 void drawBackgroundTiles(int tile_data[HEIGHT][WIDTH]);
 void cameraFollowTarget(tCameraManager *pCamera,tVPort *pVPort, WORD targetX, WORD targetY);
+void formatSignedValue(WORD value, char *buffer);
+void updateThrottleDisplay();
 
 typedef struct airship_obj {//struct for player parameters
     fix16_t length;         //Length of the airship for calculations
@@ -38,6 +40,8 @@ typedef struct airship_obj {//struct for player parameters
     short engines;          //amount of engines
     fix16_t xvel;           //x velocity
     fix16_t yvel;           //y velocity
+    fix16_t xvel_max;       //max x velocity
+    fix16_t yvel_max;       //max y velocity  
     Vector2D pos;           //Position
     short health;           //health
 } airship_obj;

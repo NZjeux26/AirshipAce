@@ -27,6 +27,8 @@
 #define CAMERA_MARGIN_X 40 // Tunable follow behavior - how close to the edge before camera engages
 #define CAMERA_MARGIN_Y 40
 #define FRAME_SEC 20
+#define GAME_MAX_X_VEL 20
+#define GAME_MAX_Y_VEL 20
 
 static tView *s_pView; // View containing all the viewports
 static tVPort *s_pVpScore; // Viewport for score
@@ -51,11 +53,9 @@ tBob shipBob;
 char throttleXbuffer[20];
 char throttleYbuffer[20];
 
-int gSCORE = 0;
-int g_highScore = 0; //needs to be assigned prior to initialization
-int y_pos = 0;
-short ypos = 0;
-short xpos = 0;
+WORD y_pos = 0;
+UWORD ypos = 0;
+UWORD xpos = 0;
 UBYTE increase_throttle_y = false;
 UBYTE increase_throttle_x = false;
 short throttle_y = 0;
@@ -64,7 +64,6 @@ short throttle_x = 0;
 ULONG startTime = 0;
 ULONG frame_delay = 0;
 ULONG last_frame = 0;
-UBYTE g_scored = false;
 fix16_t testdt = 0;
 
 airship_obj airship;  //this is just a testing version, in a full version of the game i'd have these named correctly with ship types etc...
@@ -121,21 +120,17 @@ void gameGsCreate(void) {
   // // Draw line separating score VPort and main VPort, leave one line blank after it
   // blitLine(
   //   s_pScoreBuffer->pBack,
-  //   0, s_pVpScore->uwHeight + 2,
-  //   s_pVpScore->uwWidth - 1, s_pVpScore->uwHeight - 2,
+  //   0, s_pVpScore->uwHeight -1,
+  //   s_pVpScore->uwWidth - 1, s_pVpScore->uwHeight -1,
   //   26, 0xFFFF, 0 // Try patterns 0xAAAA, 0xEEEE, etc.
   // );
 
-  //create the throttle text bitmap buffers.
-  throttle_x = 9999;
-  throttle_y = 9999;
+  fallfontsmall = fontCreateFromPath("data/airshipFont.fnt");//create font
 
-  fallfontsmall = fontCreateFromPath("data/myacefont.fnt");//create font
-
-  tTextBitMap *highscorebitmap = fontCreateTextBitMapFromStr(fallfontsmall, "Throttle X ");
+  tTextBitMap *highscorebitmap = fontCreateTextBitMapFromStr(fallfontsmall, "TH X ");
   fontDrawTextBitMap(s_pScoreBuffer->pBack, highscorebitmap, 0,10, 8, FONT_COOKIE);
 
-  tTextBitMap *textbitmap = fontCreateTextBitMapFromStr(fallfontsmall, "Throttle Y ");
+  tTextBitMap *textbitmap = fontCreateTextBitMapFromStr(fallfontsmall, "TH Y ");
   fontDrawTextBitMap(s_pScoreBuffer->pBack, textbitmap, 0,20, 8, FONT_COOKIE);
   
   //create the atmosphere
@@ -157,6 +152,8 @@ void gameGsCreate(void) {
   airship.cd = F16(0.029);
   airship.frontal_area = calculate_frontal_area(airship.diameter);
   airship.lateral_area = calculate_lateral_area(airship.length,airship.diameter);
+  airship.xvel_max = F16(4.0);
+  airship.yvel_max = F16(3.0);
 
   // logWrite("Airship Volume: %d\n",fix16_to_int(airship.volume));
   // logWrite("Airship frontal: %d\n",fix16_to_int(airship.frontal_area));
@@ -185,15 +182,24 @@ void gameGsCreate(void) {
 
   bobReallocateBuffers();
 
+  //create the throttle text bitmap buffers.
+  throttle_x = 9999;
+  throttle_y = 9999;
+  
+  stringDecimalFromULong(throttle_x,throttleXbuffer);
+  stringDecimalFromULong(throttle_y,throttleYbuffer);
+
   throttleXtbitmap = fontCreateTextBitMapFromStr(fallfontsmall, throttleXbuffer); 
   throttleYtbitmap = fontCreateTextBitMapFromStr(fallfontsmall, throttleYbuffer);
   
+  throttle_x = 0;
+  throttle_y = 0;
   startTime = timerGet();
+  
   frame_delay = 50 / 1000;
   testdt = fix16_div(fix16_from_int(50), fix16_from_int(1000));
 
-  throttle_x = 0;
-  throttle_y = 0;
+
   systemUnuse();
  
   //systemIsUsed();
@@ -246,6 +252,7 @@ void gameGsLoop(void) {
   // logWrite("Net = %d\n", fix16_to_int(net_force_y));
   // logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
   
+  //sticking with Eular intergration 
   //add that acceleration to the velocity
   airship.yvel = fix16_add(airship.yvel, fix16_mul(acceleration_y, testdt));//yvel now 22% off due to the yvel being off and thus the drag is higher than it should be.
   airship.xvel = fix16_add(airship.xvel, fix16_mul(acceleration_x,testdt));
@@ -259,27 +266,34 @@ void gameGsLoop(void) {
   
   //controls to move the player
   if(keyCheck(KEY_D)){  //move player right
-    if(throttle_x >= -100 || throttle_x <= 100) throttle_x +=1;
+    throttle_x +=1;
+    updateThrottleDisplay();
   }
   if(keyCheck(KEY_A)){  //move player left
-    if(throttle_x >= -100 || throttle_x <= 100) throttle_x -=1;
+    throttle_x -=1;
+    updateThrottleDisplay();
   }
   if(keyCheck(KEY_S)){ //move player down
-    if(throttle_x >= -100 || throttle_x <= 100) throttle_y +=1;
+    throttle_y +=1;
+    updateThrottleDisplay();
   }
   if(keyCheck(KEY_W)){ //move player up
-    if(throttle_x >= -100 || throttle_x <= 100) throttle_y -=1;
+    throttle_y -=1;
+    updateThrottleDisplay();
   }
+
+  throttle_x = CLAMP(throttle_x, -99, 99);
+  throttle_y = CLAMP(throttle_y, -99, 99);
   //update the bob positions with the ships xpos and ypos
   shipBob.sPos.uwX = xpos;
   shipBob.sPos.uwY = ypos;
   
-  //camera setup
+  //camera 
   cameraFollowTarget(pCamera, s_pVpMain, xpos, ypos);
 
   bobPush(&shipBob);
   bobEnd();
-  
+
   //recal the atmosphere, force calculations
   update_temp(&atmosphere,&constants, airship.pos);
   update_pressure(&atmosphere,&constants, airship.pos);
@@ -293,6 +307,9 @@ void gameGsLoop(void) {
   //finished with all bobs
   bobPushingDone();
   
+  //Update UI (to be moved into seperate function later)
+ 
+
   viewProcessManagers(s_pView);//might be wrong
   copProcessBlocks();
   systemIdleBegin();
@@ -314,7 +331,7 @@ void gameGsDestroy(void) {
 }
 
 void lightHighScoreCheck(void) {//session based HS keeping until file system stuff cna be sorted.
-  if(g_highScore < gSCORE) g_highScore = gSCORE;
+  
 }
 
 void drawBackgroundTiles(int tile_data[HEIGHT][WIDTH]){
@@ -353,4 +370,26 @@ void cameraFollowTarget(tCameraManager *pCamera,tVPort *pVPort, WORD targetX, WO
   if(wDx || wDy) {
     cameraMoveBy(pCamera, wDx, wDy);
   }
+}
+
+//Takes a signed value and formats it into a string with a leading '-' if negative, or no sign if positive. The result is stored in the provided buffer.
+void formatSignedValue(WORD value, char *buffer) {
+  if(value < 0) {
+    buffer[0] = '-';
+    stringDecimalFromULong((ULONG)(-value), &buffer[1]);
+  } else {
+    stringDecimalFromULong((ULONG)value, buffer);
+  }
+}
+
+//function to update the throttle display on the score viewport, called whenever the throttle values change.
+void updateThrottleDisplay() {
+  formatSignedValue(throttle_x, throttleXbuffer);
+  formatSignedValue(throttle_y, throttleYbuffer);
+  blitRect(s_pScoreBuffer->pBack, 40,10, throttleXtbitmap->uwActualWidth, throttleXtbitmap->uwActualHeight,0);
+  blitRect(s_pScoreBuffer->pBack, 40,20, throttleYtbitmap->uwActualWidth, throttleYtbitmap->uwActualHeight,0);
+  fontFillTextBitMap(fallfontsmall, throttleXtbitmap, throttleXbuffer);
+  fontFillTextBitMap(fallfontsmall, throttleYtbitmap, throttleYbuffer);
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, throttleXtbitmap, 40,10, 8, FONT_COOKIE);
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, throttleYtbitmap, 40,20, 8, FONT_COOKIE);
 }
