@@ -21,15 +21,18 @@
 #define true 1
 //-------------------------------------------------------------- NEW STUFF START
 //AMiga Pal 320x256
+#define ATMOSPHERE_DEBUG 0
+#define AIRSHIP_DEBUG 0
 #define PLAYFIELD_HEIGHT (256-32) //32 for the top viewport height
 #define PLAYFIELD_WIDTH (320)
 #define GROUND_HEIGHT (PLAYFIELD_HEIGHT) //32 for the top viewport height
 #define CAMERA_MARGIN_X 40 // Tunable follow behavior - how close to the edge before camera engages
 #define CAMERA_MARGIN_Y 40
 #define FRAME_SEC 20
-#define GAME_MAX_X_VEL 20
-#define GAME_MAX_Y_VEL 20
+#define GAME_MAX_X_VEL F16(20)
+#define GAME_MAX_Y_VEL F16(20)
 
+//Viewports and Tile manager
 static tView *s_pView; // View containing all the viewports
 static tVPort *s_pVpScore; // Viewport for score
 static tSimpleBufferManager *s_pScoreBuffer;
@@ -43,16 +46,19 @@ static tBitMap *s_pBmShipTest;
 static tBitMap *s_pBmShipTest_Mask;
 static tBitMap *s_pTiles;
 
+//UI Display, Font, Text etc
 tFont *fallfontsmall; //global for font
-tTextBitMap *throttleXtbitmap;//global for throttle information
-tTextBitMap *throttleYtbitmap;
+tTextBitMap *UIThrottleXBitmap;//global for throttle information
+tTextBitMap *UIThrottleYBitmap;
+tTextBitMap *UIVelocityXBitmap;
+tTextBitMap *UIVelocityYBitmap;
+char displaybufferX[20];
+char displaybufferY[20];
 tCameraManager *pCamera;
 
 tBob shipBob;
-//game vars
-char throttleXbuffer[20];
-char throttleYbuffer[20];
 
+//game vars
 WORD y_pos = 0;
 UWORD ypos = 0;
 UWORD xpos = 0;
@@ -116,30 +122,32 @@ void gameGsCreate(void) {
   pCamera = s_pMainBuffer->pCamera;
   pCamera->uPos.uwX = xpos;
   pCamera->uPos.uwY = ypos;
-  
-  // // Draw line separating score VPort and main VPort, leave one line blank after it
-  // blitLine(
-  //   s_pScoreBuffer->pBack,
-  //   0, s_pVpScore->uwHeight -1,
-  //   s_pVpScore->uwWidth - 1, s_pVpScore->uwHeight -1,
-  //   26, 0xFFFF, 0 // Try patterns 0xAAAA, 0xEEEE, etc.
-  // );
 
   fallfontsmall = fontCreateFromPath("data/airshipFont.fnt");//create font
 
-  tTextBitMap *highscorebitmap = fontCreateTextBitMapFromStr(fallfontsmall, "TH X ");
-  fontDrawTextBitMap(s_pScoreBuffer->pBack, highscorebitmap, 0,10, 8, FONT_COOKIE);
+  //Build Fixed UI
+  tTextBitMap *UIThrottleXStatic = fontCreateTextBitMapFromStr(fallfontsmall, "TX ");
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIThrottleXStatic, 0,10, 3, FONT_COOKIE);
 
-  tTextBitMap *textbitmap = fontCreateTextBitMapFromStr(fallfontsmall, "TH Y ");
-  fontDrawTextBitMap(s_pScoreBuffer->pBack, textbitmap, 0,20, 8, FONT_COOKIE);
+  tTextBitMap *UIThrottleYStatic = fontCreateTextBitMapFromStr(fallfontsmall, "TY ");
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIThrottleYStatic, 0,20, 3, FONT_COOKIE);
   
+  tTextBitMap *UIVelocityXStatic = fontCreateTextBitMapFromStr(fallfontsmall, "VX ");
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityXStatic, 40,10, 3, FONT_COOKIE);
+
+  tTextBitMap *UIVelocityYStatic = fontCreateTextBitMapFromStr(fallfontsmall, "VY ");
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityYStatic, 40,20, 3, FONT_COOKIE);
+
   //create the atmosphere
   constants = constants_init(); //setup the constants
   create_atmosphere(&atmosphere,&constants); //create the three parameters with the sealevel constants
+
+  #if ATMOSPHERE_DEBUG
   logWrite("LOG Temp1: %d\n", fix16_to_int(atmosphere.temperature));
   logWrite("LOG Pressure1: %d\n", fix16_to_int(atmosphere.pressure));
   logWrite("LOG Density1: %d\n", fix16_to_int(atmosphere.denisty));
-  
+  #endif
+
   //create the airship
   airship.pos = createVector2D(F16(PLAYFIELD_WIDTH / 2), F16(0));
   airship.bw = 16;
@@ -152,12 +160,14 @@ void gameGsCreate(void) {
   airship.cd = F16(0.029);
   airship.frontal_area = calculate_frontal_area(airship.diameter);
   airship.lateral_area = calculate_lateral_area(airship.length,airship.diameter);
-  airship.xvel_max = F16(4.0);
-  airship.yvel_max = F16(3.0);
+  airship.xvel_max = F16(10.0);
+  airship.yvel_max = F16(10.0);
 
-  // logWrite("Airship Volume: %d\n",fix16_to_int(airship.volume));
-  // logWrite("Airship frontal: %d\n",fix16_to_int(airship.frontal_area));
-  // logWrite("Airship lateral: %d\n",fix16_to_int(airship.lateral_area));
+  #if AIRSHIP_DEBUG
+  logWrite("Airship Volume: %d\n",fix16_to_int(airship.volume));
+  logWrite("Airship frontal: %d\n",fix16_to_int(airship.frontal_area));
+  logWrite("Airship lateral: %d\n",fix16_to_int(airship.lateral_area));
+  #endif
   //create the engine
   engine.mass = 2;
   engine.fuel_flow = F16(0.719);
@@ -183,14 +193,16 @@ void gameGsCreate(void) {
   bobReallocateBuffers();
 
   //create the throttle text bitmap buffers.
-  throttle_x = 9999;
-  throttle_y = 9999;
+  throttle_x = 999;
+  throttle_y = 999;
   
-  stringDecimalFromULong(throttle_x,throttleXbuffer);
-  stringDecimalFromULong(throttle_y,throttleYbuffer);
+  stringDecimalFromULong(throttle_x,displaybufferX);
+  stringDecimalFromULong(throttle_y,displaybufferY);
 
-  throttleXtbitmap = fontCreateTextBitMapFromStr(fallfontsmall, throttleXbuffer); 
-  throttleYtbitmap = fontCreateTextBitMapFromStr(fallfontsmall, throttleYbuffer);
+  UIThrottleXBitmap = fontCreateTextBitMapFromStr(fallfontsmall, displaybufferX); 
+  UIThrottleYBitmap = fontCreateTextBitMapFromStr(fallfontsmall, displaybufferY);
+  UIVelocityXBitmap = fontCreateTextBitMapFromStr(fallfontsmall, displaybufferX);
+  UIVelocityYBitmap = fontCreateTextBitMapFromStr(fallfontsmall, displaybufferY);
   
   throttle_x = 0;
   throttle_y = 0;
@@ -246,16 +258,26 @@ void gameGsLoop(void) {
   fix16_t acceleration_x = fix16_div(net_force_x, fix16_from_int(airship.dryMass)); //mass will need to change to total once everything is added correctly
   //logWrite("@throttleY: %d\n", throttle_y);
   //logWrite("@throttleX: %d\n", throttle_x);
-
-  // logWrite("@Engine Thrust: %d\n", fix16_to_int(totalthurst));
-  // logWrite("Bforce: %d\n", fix16_to_int(bforce));
-  // logWrite("Net = %d\n", fix16_to_int(net_force_y));
-  // logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
   
+  #if AIRSHIP_DEBUG
+  logWrite("@Engine Thrust: %d\n", fix16_to_int(totalthurst));
+  logWrite("Bforce: %d\n", fix16_to_int(bforce));
+  logWrite("Net = %d\n", fix16_to_int(net_force_y));
+  logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
+  #endif
   //sticking with Eular intergration 
+  
   //add that acceleration to the velocity
   airship.yvel = fix16_add(airship.yvel, fix16_mul(acceleration_y, testdt));//yvel now 22% off due to the yvel being off and thus the drag is higher than it should be.
   airship.xvel = fix16_add(airship.xvel, fix16_mul(acceleration_x,testdt));
+  
+  //Cap the max velocity in both X and Y the Airship can travel, both as a physics thing and as a safety thing.
+  fix16_t maxX = fix16_min(GAME_MAX_X_VEL, airship.xvel_max);
+  fix16_t maxY = fix16_min(GAME_MAX_Y_VEL,airship.yvel_max);
+  airship.yvel = fix16_clamp(airship.yvel, -maxY,maxY);
+  airship.xvel = fix16_clamp(airship.xvel, -maxX, maxX);
+  
+  //Update the positions based on the velocity.
   airship.pos.y = fix16_add(airship.pos.y, airship.yvel);
   airship.pos.x = fix16_add(airship.pos.x,airship.xvel);
   
@@ -298,22 +320,23 @@ void gameGsLoop(void) {
   update_temp(&atmosphere,&constants, airship.pos);
   update_pressure(&atmosphere,&constants, airship.pos);
   update_density(&atmosphere, &constants);
+  updateVelocityDisplay();
 
-  // logWrite("Temp: %d\n", fix16_to_int(atmosphere.temperature));
-  // logWrite("Pressure: %d\n", fix16_to_int(atmosphere.pressure ));
-  // logWrite("Density: %d\n", fix16_to_int(atmosphere.denisty));
-  
+  #if ATMOSPHERE_DEBUG
+  logWrite("LOG Temp: %d\n", fix16_to_int(atmosphere.temperature));
+  logWrite("LOG Pressure: %d\n", fix16_to_int(atmosphere.pressure ));
+  logWrite("LOG Density: %d\n", fix16_to_int(atmosphere.denisty));
+  #endif
+
   last_frame = current_time;
   //finished with all bobs
   bobPushingDone();
   
   //Update UI (to be moved into seperate function later)
  
-
-  viewProcessManagers(s_pView);//might be wrong
+  viewProcessManagers(s_pView);
   copProcessBlocks();
   systemIdleBegin();
-  //vPortWaitUntilEnd(s_pVpMain);
   vPortWaitForEnd(s_pVpMain);
   systemIdleEnd();
   }
@@ -384,12 +407,25 @@ void formatSignedValue(WORD value, char *buffer) {
 
 //function to update the throttle display on the score viewport, called whenever the throttle values change.
 void updateThrottleDisplay() {
-  formatSignedValue(throttle_x, throttleXbuffer);
-  formatSignedValue(throttle_y, throttleYbuffer);
-  blitRect(s_pScoreBuffer->pBack, 40,10, throttleXtbitmap->uwActualWidth, throttleXtbitmap->uwActualHeight,0);
-  blitRect(s_pScoreBuffer->pBack, 40,20, throttleYtbitmap->uwActualWidth, throttleYtbitmap->uwActualHeight,0);
-  fontFillTextBitMap(fallfontsmall, throttleXtbitmap, throttleXbuffer);
-  fontFillTextBitMap(fallfontsmall, throttleYtbitmap, throttleYbuffer);
-  fontDrawTextBitMap(s_pScoreBuffer->pBack, throttleXtbitmap, 40,10, 8, FONT_COOKIE);
-  fontDrawTextBitMap(s_pScoreBuffer->pBack, throttleYtbitmap, 40,20, 8, FONT_COOKIE);
+  
+  formatSignedValue(throttle_x, displaybufferX);
+  formatSignedValue(throttle_y, displaybufferY);
+  blitRect(s_pScoreBuffer->pBack, 20,10, UIThrottleXBitmap->uwActualWidth, UIThrottleXBitmap->uwActualHeight,0);
+  blitRect(s_pScoreBuffer->pBack, 20,20, UIThrottleYBitmap->uwActualWidth, UIThrottleYBitmap->uwActualHeight,0);
+  fontFillTextBitMap(fallfontsmall, UIThrottleXBitmap, displaybufferX);
+  fontFillTextBitMap(fallfontsmall, UIThrottleYBitmap, displaybufferY);
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIThrottleXBitmap, 20,10, 3, FONT_COOKIE);
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIThrottleYBitmap, 20,20, 3, FONT_COOKIE);
+}
+
+void updateVelocityDisplay() {
+
+  formatSignedValue(fix16_to_int(airship.xvel), displaybufferX);
+  formatSignedValue(fix16_to_int(airship.yvel), displaybufferY);
+  blitRect(s_pScoreBuffer->pBack, 50,10, UIVelocityXBitmap->uwActualWidth, UIVelocityXBitmap->uwActualHeight,0);
+  blitRect(s_pScoreBuffer->pBack, 50,20, UIVelocityYBitmap->uwActualWidth, UIVelocityYBitmap->uwActualHeight,0);
+  fontFillTextBitMap(fallfontsmall, UIVelocityXBitmap, displaybufferX);
+  fontFillTextBitMap(fallfontsmall, UIVelocityYBitmap, displaybufferY);
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityXBitmap, 50,10, 3, FONT_COOKIE);
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityYBitmap, 50,20, 3, FONT_COOKIE);
 }

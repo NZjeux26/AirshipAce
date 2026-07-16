@@ -19,6 +19,7 @@ void drawBackgroundTiles(int tile_data[HEIGHT][WIDTH]);
 void cameraFollowTarget(tCameraManager *pCamera,tVPort *pVPort, WORD targetX, WORD targetY);
 void formatSignedValue(WORD value, char *buffer);
 void updateThrottleDisplay();
+void updateVelocityDisplay();
 
 typedef struct airship_obj {//struct for player parameters
     fix16_t length;         //Length of the airship for calculations
@@ -29,13 +30,13 @@ typedef struct airship_obj {//struct for player parameters
     fix16_t cd;
     fix16_t frontal_area;
     fix16_t lateral_area;
-    int ballest;
-    int dryMass;            //Dry mass of the airship
-    int wetMass;            //Wet mass of the airship, this includes fuel, weapons, ammo, crew, cargo
-    int cargoMass;          //Cargo mass
+    short ballest;
+    short dryMass;            //Dry mass of the airship
+    short wetMass;            //Wet mass of the airship, this includes fuel, weapons, ammo, crew, cargo
+    short cargoMass;          //Cargo mass
     short crew;             //amount of crew
-    int crewMass;           //amount of crew in tons
-    int weaponMass;         //mass of th weapon loadout
+    short crewMass;           //amount of crew in tons
+    short weaponMass;         //mass of th weapon loadout
     short weaponHardpoints; //amount of hardpoints the ship has for weapons
     short engines;          //amount of engines
     fix16_t xvel;           //x velocity
