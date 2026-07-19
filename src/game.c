@@ -59,11 +59,10 @@ tCameraManager *pCamera;
 tBob shipBob;
 
 //game vars
-WORD y_pos = 0;
 UWORD ypos = 0;
 UWORD xpos = 0;
-UBYTE increase_throttle_y = false;
-UBYTE increase_throttle_x = false;
+BYTE increase_throttle_y = false;
+BYTE increase_throttle_x = false;
 short throttle_y = 0;
 short throttle_x = 0;
 
@@ -78,42 +77,42 @@ Atmosphere atmosphere;
 Constants constants;
 
 void gameGsCreate(void) {
-  tRayPos sRayPos = getRayPos();
+  //tRayPos sRayPos = getRayPos();
 
-  s_pRandManager = randCreate(1+(sRayPos.bfPosY << 8), 1 + sRayPos.bfPosX);
+  //s_pRandManager = randCreate(1+(sRayPos.bfPosY << 8), 1 + sRayPos.bfPosX);
 
   s_pView = viewCreate(0,TAG_VIEW_GLOBAL_PALETTE, 1,TAG_END); // Important thing here, you can set different palettes for the different viewports.
 
   //The order of the viewport creation is important, the height starts from the 0 line, then the next viewport is created below it, and so on. So the order of creation is important.
   s_pVpMain = vPortCreate(0,
-    TAG_VPORT_VIEW, s_pView,
-    TAG_VPORT_BPP, 5,
-    TAG_VPORT_HEIGHT, PLAYFIELD_HEIGHT,
+  TAG_VPORT_VIEW, s_pView,
+  TAG_VPORT_BPP, 5,
+  TAG_VPORT_HEIGHT, PLAYFIELD_HEIGHT, //playfield height put here since I want to leave space for the score in the view
   TAG_END);
 
    // Viewport for score bar - on top of screen
   s_pVpScore = vPortCreate(0,
-    TAG_VPORT_VIEW, s_pView,
-    TAG_VPORT_BPP, 5,
-    TAG_VPORT_HEIGHT, 32,
+  TAG_VPORT_VIEW, s_pView,
+  TAG_VPORT_BPP, 5,
+  TAG_VPORT_HEIGHT, 32, //Set the height to be 32 px high
   TAG_END);
 
   s_pTiles = bitmapCreateFromPath("data/tilestest2.bm", 0);
   
   s_pMainBuffer = tileBufferCreate(0,
-    TAG_TILEBUFFER_VPORT, s_pVpMain,
-    TAG_TILEBUFFER_BITMAP_FLAGS, BMF_CLEAR | BMF_INTERLEAVED,
-    TAG_TILEBUFFER_BOUND_TILE_X, WIDTH,
-    TAG_TILEBUFFER_BOUND_TILE_Y, HEIGHT,
-    TAG_TILEBUFFER_IS_DBLBUF, 1,
-    TAG_TILEBUFFER_TILE_SHIFT, 4,
-    TAG_TILEBUFFER_REDRAW_QUEUE_LENGTH, 100,
-    TAG_TILEBUFFER_TILESET, s_pTiles,
-    TAG_END);
+  TAG_TILEBUFFER_VPORT, s_pVpMain,
+  TAG_TILEBUFFER_BITMAP_FLAGS, BMF_CLEAR | BMF_INTERLEAVED,
+  TAG_TILEBUFFER_BOUND_TILE_X, WIDTH,
+  TAG_TILEBUFFER_BOUND_TILE_Y, HEIGHT,
+  TAG_TILEBUFFER_IS_DBLBUF, 1,
+  TAG_TILEBUFFER_TILE_SHIFT, 4,
+  TAG_TILEBUFFER_REDRAW_QUEUE_LENGTH, 100,
+  TAG_TILEBUFFER_TILESET, s_pTiles,
+  TAG_END);
 
   s_pScoreBuffer = simpleBufferCreate(0,
-    TAG_SIMPLEBUFFER_VPORT, s_pVpScore,
-    TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_CLEAR,
+  TAG_SIMPLEBUFFER_VPORT, s_pVpScore,
+  TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_CLEAR,
   TAG_END);
 
   //For a global palette you need to load the palette into the first viewport.
@@ -133,10 +132,10 @@ void gameGsCreate(void) {
   fontDrawTextBitMap(s_pScoreBuffer->pBack, UIThrottleYStatic, 0,20, 3, FONT_COOKIE);
   
   tTextBitMap *UIVelocityXStatic = fontCreateTextBitMapFromStr(fallfontsmall, "VX ");
-  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityXStatic, 40,10, 3, FONT_COOKIE);
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityXStatic, 35,10, 3, FONT_COOKIE);
 
   tTextBitMap *UIVelocityYStatic = fontCreateTextBitMapFromStr(fallfontsmall, "VY ");
-  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityYStatic, 40,20, 3, FONT_COOKIE);
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityYStatic, 35,20, 3, FONT_COOKIE);
 
   //create the atmosphere
   constants = constants_init(); //setup the constants
@@ -168,6 +167,7 @@ void gameGsCreate(void) {
   logWrite("Airship frontal: %d\n",fix16_to_int(airship.frontal_area));
   logWrite("Airship lateral: %d\n",fix16_to_int(airship.lateral_area));
   #endif
+
   //create the engine
   engine.mass = 2;
   engine.fuel_flow = F16(0.719);
@@ -281,11 +281,13 @@ void gameGsLoop(void) {
   airship.pos.y = fix16_add(airship.pos.y, airship.yvel);
   airship.pos.x = fix16_add(airship.pos.x,airship.xvel);
   
-  ypos = GROUND_HEIGHT - fix16_to_int(airship.pos.y);//this needed to be jsut assigned and not added which was why is was fucking off to the moon
+  ypos = GROUND_HEIGHT - fix16_to_int(airship.pos.y); //Set the Ypos to be at the ground height - the size of the ship so that it starts at the bottom.
   xpos = fix16_to_int(airship.pos.x);
  
-  //logWrite("AirshipPOS %d\n", ypos);
-  
+  #if AIRSHIP_DEBUG
+    logWrite("AirshipPOS %d\n", ypos);
+  #endif
+
   //controls to move the player
   if(keyCheck(KEY_D)){  //move player right
     throttle_x +=1;
@@ -410,22 +412,41 @@ void updateThrottleDisplay() {
   
   formatSignedValue(throttle_x, displaybufferX);
   formatSignedValue(throttle_y, displaybufferY);
-  blitRect(s_pScoreBuffer->pBack, 20,10, UIThrottleXBitmap->uwActualWidth, UIThrottleXBitmap->uwActualHeight,0);
-  blitRect(s_pScoreBuffer->pBack, 20,20, UIThrottleYBitmap->uwActualWidth, UIThrottleYBitmap->uwActualHeight,0);
+  blitRect(s_pScoreBuffer->pBack, 15,10, UIThrottleXBitmap->uwActualWidth, UIThrottleXBitmap->uwActualHeight,0);
+  blitRect(s_pScoreBuffer->pBack, 15,20, UIThrottleYBitmap->uwActualWidth, UIThrottleYBitmap->uwActualHeight,0);
   fontFillTextBitMap(fallfontsmall, UIThrottleXBitmap, displaybufferX);
   fontFillTextBitMap(fallfontsmall, UIThrottleYBitmap, displaybufferY);
-  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIThrottleXBitmap, 20,10, 3, FONT_COOKIE);
-  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIThrottleYBitmap, 20,20, 3, FONT_COOKIE);
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIThrottleXBitmap, 15,10, 3, FONT_COOKIE);
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIThrottleYBitmap, 15,20, 3, FONT_COOKIE);
 }
-
+/*
+  takes the velocity values from the airship struct and converts them to strings, then updates the display if they have changed since the last frame. 
+*/
 void updateVelocityDisplay() {
+  
+  static UBYTE frameCounter = 0;
+  if(++frameCounter < 4) return;   // ~12-13Hz at 50fps - plenty readable
+  frameCounter = 0;
 
-  formatSignedValue(fix16_to_int(airship.xvel), displaybufferX);
-  formatSignedValue(fix16_to_int(airship.yvel), displaybufferY);
-  blitRect(s_pScoreBuffer->pBack, 50,10, UIVelocityXBitmap->uwActualWidth, UIVelocityXBitmap->uwActualHeight,0);
-  blitRect(s_pScoreBuffer->pBack, 50,20, UIVelocityYBitmap->uwActualWidth, UIVelocityYBitmap->uwActualHeight,0);
-  fontFillTextBitMap(fallfontsmall, UIVelocityXBitmap, displaybufferX);
-  fontFillTextBitMap(fallfontsmall, UIVelocityYBitmap, displaybufferY);
-  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityXBitmap, 50,10, 3, FONT_COOKIE);
-  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityYBitmap, 50,20, 3, FONT_COOKIE);
+  char newX[12]; //local character buffers
+  char newY[12];
+  //convert the signed velocity values to strings with proper formatting
+  fix16_to_str(airship.xvel, newX, 2);
+  fix16_to_str(airship.yvel, newY, 2);
+
+  //compare the new values with the previous ones and update the display if they have changed
+  if(strcmp(newX, displaybufferX) != 0) {
+    strcpy(displaybufferX, newX);
+    blitRect(s_pScoreBuffer->pBack, 50,10, UIVelocityXBitmap->uwActualWidth, UIVelocityXBitmap->uwActualHeight,0); //set to diff colour so i can see where the box is
+    fontFillTextBitMap(fallfontsmall, UIVelocityXBitmap, displaybufferX);
+    fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityXBitmap, 50,10, 3, FONT_LAZY);
+  }
+
+  if(strcmp(newY, displaybufferY) != 0) {
+    strcpy(displaybufferY, newY);
+    blitRect(s_pScoreBuffer->pBack, 50,20, UIVelocityYBitmap->uwActualWidth, UIVelocityYBitmap->uwActualHeight,0); //set to diff colour so i can see where the box is
+    fontFillTextBitMap(fallfontsmall, UIVelocityYBitmap, displaybufferY);
+    fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityYBitmap, 50,20, 3, FONT_LAZY);
+  }
+
 }
