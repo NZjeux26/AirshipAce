@@ -20,7 +20,8 @@ void cameraFollowTarget(tCameraManager *pCamera,tVPort *pVPort, WORD targetX, WO
 void formatSignedValue(WORD value, char *buffer);
 void updateThrottleDisplay();
 void updateVelocityDisplay();
-
+void updatePositionDisplay();
+void clampAxis(fix16_t *pPos, fix16_t *pVel, fix16_t max);
 typedef struct airship_obj {//struct for player parameters
     fix16_t length;         //Length of the airship for calculations
     fix16_t diameter;       //Diameter of the airship for calculations

@@ -24,13 +24,16 @@
 #define ATMOSPHERE_DEBUG 0
 #define AIRSHIP_DEBUG 0
 #define PLAYFIELD_HEIGHT (256-32) //32 for the top viewport height
-#define PLAYFIELD_WIDTH (320)
-#define GROUND_HEIGHT (PLAYFIELD_HEIGHT) //32 for the top viewport height
-#define CAMERA_MARGIN_X 40 // Tunable follow behavior - how close to the edge before camera engages
+#define PLAYFIELD_WIDTH 320
+#define GROUND_HEIGHT 256 //32 for the top viewport height
+#define CAMERA_MARGIN_X 120 // Tunable follow behavior - how close to the edge before camera engages
 #define CAMERA_MARGIN_Y 40
 #define FRAME_SEC 20
 #define GAME_MAX_X_VEL F16(20)
 #define GAME_MAX_Y_VEL F16(20)
+#define TILE_SIZE_PX (1 << 4)          // matches TAG_TILEBUFFER_TILE_SHIFT
+#define WORLD_WIDTH_PX  (WIDTH  * TILE_SIZE_PX)
+#define WORLD_HEIGHT_PX (HEIGHT * TILE_SIZE_PX)
 
 //Viewports and Tile manager
 static tView *s_pView; // View containing all the viewports
@@ -52,6 +55,8 @@ tTextBitMap *UIThrottleXBitmap;//global for throttle information
 tTextBitMap *UIThrottleYBitmap;
 tTextBitMap *UIVelocityXBitmap;
 tTextBitMap *UIVelocityYBitmap;
+tTextBitMap *UIPositionXBitmap;
+tTextBitMap *UIPositionYBitmap;
 char displaybufferX[20];
 char displaybufferY[20];
 tCameraManager *pCamera;
@@ -65,6 +70,8 @@ BYTE increase_throttle_y = false;
 BYTE increase_throttle_x = false;
 short throttle_y = 0;
 short throttle_x = 0;
+fix16_t g_maxPosY;
+fix16_t g_maxPosX;
 
 ULONG startTime = 0;
 ULONG frame_delay = 0;
@@ -137,14 +144,20 @@ void gameGsCreate(void) {
   tTextBitMap *UIVelocityYStatic = fontCreateTextBitMapFromStr(fallfontsmall, "VY ");
   fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityYStatic, 35,20, 3, FONT_COOKIE);
 
+  tTextBitMap *UIPositionXStatic = fontCreateTextBitMapFromStr(fallfontsmall, "PX ");
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIPositionXStatic, 80,10, 3, FONT_COOKIE);  
+
+  tTextBitMap *UIPositionYStatic = fontCreateTextBitMapFromStr(fallfontsmall, "PY ");
+  fontDrawTextBitMap(s_pScoreBuffer->pBack, UIPositionYStatic, 80,20, 3, FONT_COOKIE);
+
   //create the atmosphere
   constants = constants_init(); //setup the constants
   create_atmosphere(&atmosphere,&constants); //create the three parameters with the sealevel constants
 
   #if ATMOSPHERE_DEBUG
-  logWrite("LOG Temp1: %d\n", fix16_to_int(atmosphere.temperature));
-  logWrite("LOG Pressure1: %d\n", fix16_to_int(atmosphere.pressure));
-  logWrite("LOG Density1: %d\n", fix16_to_int(atmosphere.denisty));
+    logWrite("LOG Temp1: %d\n", fix16_to_int(atmosphere.temperature));
+    logWrite("LOG Pressure1: %d\n", fix16_to_int(atmosphere.pressure));
+    logWrite("LOG Density1: %d\n", fix16_to_int(atmosphere.denisty));
   #endif
 
   //create the airship
@@ -162,10 +175,19 @@ void gameGsCreate(void) {
   airship.xvel_max = F16(10.0);
   airship.yvel_max = F16(10.0);
 
+  //set the max position for the camera to follow the ship.
+  g_maxPosY = fix16_sub(fix16_from_int(GROUND_HEIGHT), fix16_from_int(airship.bw));
+  g_maxPosX = fix16_sub(fix16_from_int(PLAYFIELD_WIDTH), fix16_from_int(airship.bh));
+
+  logWrite("LOG MaxPosY: %d\n", fix16_to_int(g_maxPosY));
+  logWrite("LOG MaxPosX: %d\n", fix16_to_int(g_maxPosX));
+  logWrite("LOG Camera MaxPosY: %d\n", pCamera->uMaxPos.uwY);
+  logWrite("LOG Camera MaxPosX: %d\n", pCamera->uMaxPos.uwX);
+  
   #if AIRSHIP_DEBUG
-  logWrite("Airship Volume: %d\n",fix16_to_int(airship.volume));
-  logWrite("Airship frontal: %d\n",fix16_to_int(airship.frontal_area));
-  logWrite("Airship lateral: %d\n",fix16_to_int(airship.lateral_area));
+  logWrite("LOG Airship Volume: %d\n",fix16_to_int(airship.volume));
+  logWrite("LOG Airship frontal: %d\n",fix16_to_int(airship.frontal_area));
+  logWrite("LOG Airship lateral: %d\n",fix16_to_int(airship.lateral_area));
   #endif
 
   //create the engine
@@ -203,14 +225,15 @@ void gameGsCreate(void) {
   UIThrottleYBitmap = fontCreateTextBitMapFromStr(fallfontsmall, displaybufferY);
   UIVelocityXBitmap = fontCreateTextBitMapFromStr(fallfontsmall, displaybufferX);
   UIVelocityYBitmap = fontCreateTextBitMapFromStr(fallfontsmall, displaybufferY);
-  
+  UIPositionXBitmap = fontCreateTextBitMapFromStr(fallfontsmall, displaybufferX);
+  UIPositionYBitmap = fontCreateTextBitMapFromStr(fallfontsmall, displaybufferY);
+
   throttle_x = 0;
   throttle_y = 0;
   startTime = timerGet();
   
   frame_delay = 50 / 1000;
   testdt = fix16_div(fix16_from_int(50), fix16_from_int(1000));
-
 
   systemUnuse();
  
@@ -260,10 +283,10 @@ void gameGsLoop(void) {
   //logWrite("@throttleX: %d\n", throttle_x);
   
   #if AIRSHIP_DEBUG
-  logWrite("@Engine Thrust: %d\n", fix16_to_int(totalthurst));
-  logWrite("Bforce: %d\n", fix16_to_int(bforce));
-  logWrite("Net = %d\n", fix16_to_int(net_force_y));
-  logWrite("Acceleration = %d\n",fix16_to_int(acceleration_y));
+    // logWrite("LOG Engine Thrust: %d\n", fix16_to_int(totalthurst));
+    // logWrite("LOG Bforce: %d\n", fix16_to_int(bforce));
+    // logWrite("LOG Net = %d\n", fix16_to_int(net_force_y));
+    // logWrite("LOG Acceleration = %d\n",fix16_to_int(acceleration_y));
   #endif
   //sticking with Eular intergration 
   
@@ -277,15 +300,25 @@ void gameGsLoop(void) {
   airship.yvel = fix16_clamp(airship.yvel, -maxY,maxY);
   airship.xvel = fix16_clamp(airship.xvel, -maxX, maxX);
   
-  //Update the positions based on the velocity.
+  /*** Update the positions based on the velocity ***/
+  
+  //add checks to make sure the ship doesn't go off screen, if it does then stop adding to the position.
   airship.pos.y = fix16_add(airship.pos.y, airship.yvel);
   airship.pos.x = fix16_add(airship.pos.x,airship.xvel);
+
+  //clamp the position to make sure it doesn't go off screen
+  airship.pos.y = fix16_clamp(airship.pos.y, fix16_from_int(0), g_maxPosY);
+  airship.pos.x = fix16_clamp(airship.pos.x, fix16_from_int(0), g_maxPosX);
   
+  //convert to screen.
   ypos = GROUND_HEIGHT - fix16_to_int(airship.pos.y); //Set the Ypos to be at the ground height - the size of the ship so that it starts at the bottom.
   xpos = fix16_to_int(airship.pos.x);
  
+  //update the position display on the score viewport
+  updatePositionDisplay();
+
   #if AIRSHIP_DEBUG
-    logWrite("AirshipPOS %d\n", ypos);
+    logWrite("LOG AirshipPOS %d\n", ypos);
   #endif
 
   //controls to move the player
@@ -308,6 +341,7 @@ void gameGsLoop(void) {
 
   throttle_x = CLAMP(throttle_x, -99, 99);
   throttle_y = CLAMP(throttle_y, -99, 99);
+  
   //update the bob positions with the ships xpos and ypos
   shipBob.sPos.uwX = xpos;
   shipBob.sPos.uwY = ypos;
@@ -449,4 +483,38 @@ void updateVelocityDisplay() {
     fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityYBitmap, 50,20, 3, FONT_LAZY);
   }
 
+}
+
+void updatePositionDisplay() {
+  static UBYTE frameCounter = 0;
+  if(++frameCounter < 4) return;   // ~12-13Hz at 50fps - plenty readable
+  frameCounter = 0;
+
+  char newX[12]; //local character buffers
+  char newY[12];
+  
+  //doesn't need to be decimal since the position is in pixels
+  formatSignedValue(fix16_to_int(airship.pos.x), newX);
+  formatSignedValue(fix16_to_int(airship.pos.y), newY);
+
+  //compare the new values with the previous ones and update the display if they have changed
+  if(strcmp(newX, displaybufferX) != 0) {
+    strcpy(displaybufferX, newX);
+    blitRect(s_pScoreBuffer->pBack, 100,10, UIVelocityXBitmap->uwActualWidth, UIVelocityXBitmap->uwActualHeight,0); //set to diff colour so i can see where the box is
+    fontFillTextBitMap(fallfontsmall, UIVelocityXBitmap, displaybufferX);
+    fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityXBitmap, 100,10, 3, FONT_LAZY);
+  }
+
+  if(strcmp(newY, displaybufferY) != 0) {
+    strcpy(displaybufferY, newY);
+    blitRect(s_pScoreBuffer->pBack, 100,20, UIVelocityYBitmap->uwActualWidth, UIVelocityYBitmap->uwActualHeight,0); //set to diff colour so i can see where the box is
+    fontFillTextBitMap(fallfontsmall, UIVelocityYBitmap, displaybufferY);
+    fontDrawTextBitMap(s_pScoreBuffer->pBack, UIVelocityYBitmap, 100,20, 3, FONT_LAZY);
+  }
+}
+//Clamp the position and velocity of an axis to ensure the object stays within bounds. If the position is out of bounds and the velocity is moving further out, the velocity is set to zero. 
+void clampAxis(fix16_t *pPos, fix16_t *pVel, fix16_t max) {
+  if(*pPos < 0 && *pVel < 0) *pVel = 0;
+  else if(*pPos > max && *pVel > 0) *pVel = 0;
+  *pPos = CLAMP(*pPos, 0, max);
 }
