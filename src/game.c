@@ -25,9 +25,9 @@
 #define AIRSHIP_DEBUG 0
 #define PLAYFIELD_HEIGHT (256-32) //32 for the top viewport height
 #define PLAYFIELD_WIDTH 320
-#define GROUND_HEIGHT 256 //32 for the top viewport height
+#define GROUND_HEIGHT 1200 //32 for the top viewport height
 #define CAMERA_MARGIN_X 120 // Tunable follow behavior - how close to the edge before camera engages
-#define CAMERA_MARGIN_Y 40
+#define CAMERA_MARGIN_Y 20
 #define FRAME_SEC 20
 #define GAME_MAX_X_VEL F16(20)
 #define GAME_MAX_Y_VEL F16(20)
@@ -109,11 +109,11 @@ void gameGsCreate(void) {
   s_pMainBuffer = tileBufferCreate(0,
   TAG_TILEBUFFER_VPORT, s_pVpMain,
   TAG_TILEBUFFER_BITMAP_FLAGS, BMF_CLEAR | BMF_INTERLEAVED,
-  TAG_TILEBUFFER_BOUND_TILE_X, WIDTH,
-  TAG_TILEBUFFER_BOUND_TILE_Y, HEIGHT,
-  TAG_TILEBUFFER_IS_DBLBUF, 1,
-  TAG_TILEBUFFER_TILE_SHIFT, 4,
-  TAG_TILEBUFFER_REDRAW_QUEUE_LENGTH, 100,
+  TAG_TILEBUFFER_BOUND_TILE_X, WIDTH, //map size in tiles, 84x16 is 1328px
+  TAG_TILEBUFFER_BOUND_TILE_Y, HEIGHT, //map size in tiles, 84x16 is 1200px
+  TAG_TILEBUFFER_IS_DBLBUF, 1, //double buffering
+  TAG_TILEBUFFER_TILE_SHIFT, 4, //size of the tile in bitshift, 4 for 16px tiles, 5 for 32px tiles, etc
+  TAG_TILEBUFFER_REDRAW_QUEUE_LENGTH, 100, //cursor between handling fast scrolling and redrawing tiles
   TAG_TILEBUFFER_TILESET, s_pTiles,
   TAG_END);
 
@@ -124,7 +124,9 @@ void gameGsCreate(void) {
 
   //For a global palette you need to load the palette into the first viewport.
   paletteLoadFromPath("data/menupal.plt", s_pVpMain->pPalette, 32); 
-  drawBackgroundTiles(tile_data); //build background tiles
+  drawBackgroundTiles(tile_data); //build background tiles from the tile_data array in tilemap_array.c
+
+  //create the camera manager and set the position to the starting position of the ship.
   pCamera = s_pMainBuffer->pCamera;
   pCamera->uPos.uwX = xpos;
   pCamera->uPos.uwY = ypos;
@@ -175,15 +177,18 @@ void gameGsCreate(void) {
   airship.xvel_max = F16(10.0);
   airship.yvel_max = F16(10.0);
 
+  //constant — this reuses ACE's own (already-correct) camera bounds:
+  //These might be updated later to be fixed values if I standardise a mapsize.
+  UWORD uwWorldPixelWidth  = pCamera->uMaxPos.uwX + s_pVpMain->uwWidth; 
+  UWORD uwWorldPixelHeight = pCamera->uMaxPos.uwY + s_pVpMain->uwHeight;
+  
   //set the max position for the camera to follow the ship.
-  g_maxPosY = fix16_sub(fix16_from_int(GROUND_HEIGHT), fix16_from_int(airship.bw));
-  g_maxPosX = fix16_sub(fix16_from_int(PLAYFIELD_WIDTH), fix16_from_int(airship.bh));
-
+  g_maxPosX = fix16_from_int(uwWorldPixelWidth - airship.bw);
+  g_maxPosY = fix16_from_int(uwWorldPixelHeight);
+  
   logWrite("LOG MaxPosY: %d\n", fix16_to_int(g_maxPosY));
   logWrite("LOG MaxPosX: %d\n", fix16_to_int(g_maxPosX));
-  logWrite("LOG Camera MaxPosY: %d\n", pCamera->uMaxPos.uwY);
-  logWrite("LOG Camera MaxPosX: %d\n", pCamera->uMaxPos.uwX);
-  
+
   #if AIRSHIP_DEBUG
   logWrite("LOG Airship Volume: %d\n",fix16_to_int(airship.volume));
   logWrite("LOG Airship frontal: %d\n",fix16_to_int(airship.frontal_area));
@@ -202,6 +207,7 @@ void gameGsCreate(void) {
 
   //bitmap masks for keep background under the bitmap
   s_pBmTestMask  = bitmapCreate(airship.bw,airship.bh,5,0); //explictyly using 16 
+  
   //Bitmap rect test for double buffering to try fix flickering issues
   s_pBmShipTest = bitmapCreateFromPath("data/testrect.bm",0);
   s_pBmShipTest_Mask = bitmapCreateFromPath("data/testrect_mask.bm",0);
@@ -240,11 +246,12 @@ void gameGsCreate(void) {
   //systemIsUsed();
   // Load the view
   tileBufferRedrawAll(s_pMainBuffer);
+  
   viewLoad(s_pView);
 }
 
 void gameGsLoop(void) {
-  //systemUnuse();
+
   // This will loop every frame
   if(keyCheck(KEY_ESCAPE)) {
     gameExit();
@@ -255,6 +262,7 @@ void gameGsLoop(void) {
   if(dt < frame_delay){
     timerWaitUs((frame_delay - dt));
   }
+
   //undraw the airship
   bobBegin(s_pMainBuffer->pScroll->pBack);
 
@@ -307,11 +315,11 @@ void gameGsLoop(void) {
   airship.pos.x = fix16_add(airship.pos.x,airship.xvel);
 
   //clamp the position to make sure it doesn't go off screen
-  airship.pos.y = fix16_clamp(airship.pos.y, fix16_from_int(0), g_maxPosY);
+  airship.pos.y = fix16_clamp(airship.pos.y, airship.bh, g_maxPosY);
   airship.pos.x = fix16_clamp(airship.pos.x, fix16_from_int(0), g_maxPosX);
   
   //convert to screen.
-  ypos = GROUND_HEIGHT - fix16_to_int(airship.pos.y); //Set the Ypos to be at the ground height - the size of the ship so that it starts at the bottom.
+  ypos = fix16_to_int(fix16_sub(g_maxPosY,airship.pos.y)); //Take the gPosMaxY which is the total Y length of the tilemap and sibtract from the so the airship starts at the bottom
   xpos = fix16_to_int(airship.pos.x);
  
   //update the position display on the score viewport
@@ -396,8 +404,6 @@ void lightHighScoreCheck(void) {//session based HS keeping until file system stu
 void drawBackgroundTiles(int tile_data[HEIGHT][WIDTH]){
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
-            //memCheckIntegrity();
-            //logWrite("s_pMainBuffer->pTileData[%d][%d] = %d;\n", x, y, tile_data[y][x]); 
             s_pMainBuffer->pTileData[x][y] = tile_data[y][x];
         }
     }

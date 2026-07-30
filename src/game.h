@@ -5,7 +5,7 @@
 #include <ace/managers/viewport/camera.h>
 #include <fixmath/fix16.h>
 #include "atmosphere.h"
-
+//map size in tiles, 84x75 is 1344 tiles, at 16x16px per tile this is 1344*256 
 #define WIDTH 84
 #define HEIGHT 75
 
