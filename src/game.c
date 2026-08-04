@@ -25,15 +25,13 @@
 #define AIRSHIP_DEBUG 0
 #define PLAYFIELD_HEIGHT (256-32) //32 for the top viewport height
 #define PLAYFIELD_WIDTH 320
-#define GROUND_HEIGHT 1200 //32 for the top viewport height
-#define CAMERA_MARGIN_X 120 // Tunable follow behavior - how close to the edge before camera engages
-#define CAMERA_MARGIN_Y 20
+#define CAMERA_MARGIN_X 140       // Tunable follow behavior - how close to the edge before camera engages
+#define CAMERA_MARGIN_Y 30
 #define FRAME_SEC 20
 #define GAME_MAX_X_VEL F16(20)
 #define GAME_MAX_Y_VEL F16(20)
-#define TILE_SIZE_PX (1 << 4)          // matches TAG_TILEBUFFER_TILE_SHIFT
-#define WORLD_WIDTH_PX  (WIDTH  * TILE_SIZE_PX)
-#define WORLD_HEIGHT_PX (HEIGHT * TILE_SIZE_PX)
+#define TILE_SIZE_PX (1 << 4)     // matches TAG_TILEBUFFER_TILE_SHIFT
+#define PX_PER_M 10               //Sets the scale of how many pixels per m
 
 //Viewports and Tile manager
 static tView *s_pView; // View containing all the viewports
@@ -72,6 +70,8 @@ short throttle_y = 0;
 short throttle_x = 0;
 fix16_t g_maxPosY;
 fix16_t g_maxPosX;
+fix16_t g_maxPosX_m;
+fix16_t g_maxPosY_m;
 
 ULONG startTime = 0;
 ULONG frame_delay = 0;
@@ -97,7 +97,7 @@ void gameGsCreate(void) {
   TAG_VPORT_HEIGHT, PLAYFIELD_HEIGHT, //playfield height put here since I want to leave space for the score in the view
   TAG_END);
 
-   // Viewport for score bar - on top of screen
+  //Viewport for score bar, now turned into the game UI at the bottom
   s_pVpScore = vPortCreate(0,
   TAG_VPORT_VIEW, s_pView,
   TAG_VPORT_BPP, 5,
@@ -163,7 +163,7 @@ void gameGsCreate(void) {
   #endif
 
   //create the airship
-  airship.pos = createVector2D(F16(PLAYFIELD_WIDTH / 2), F16(0));
+  airship.pos = createVector2D(px_to_m(F16(PLAYFIELD_WIDTH / 2)), F16(0));
   airship.bw = 16;
   airship.bh = 14;
   airship.length = F16(23.25);
@@ -185,6 +185,8 @@ void gameGsCreate(void) {
   //set the max position for the camera to follow the ship.
   g_maxPosX = fix16_from_int(uwWorldPixelWidth - airship.bw);
   g_maxPosY = fix16_from_int(uwWorldPixelHeight);
+  g_maxPosX_m = fix16_div(g_maxPosX, fix16_from_int(PX_PER_M));
+  g_maxPosY_m = fix16_div(g_maxPosY, fix16_from_int(PX_PER_M));
   
   logWrite("LOG MaxPosY: %d\n", fix16_to_int(g_maxPosY));
   logWrite("LOG MaxPosX: %d\n", fix16_to_int(g_maxPosX));
@@ -287,8 +289,6 @@ void gameGsLoop(void) {
   //calculate the acceleration on the ship taking into account all the forces acting on it.
   fix16_t acceleration_y = fix16_div(net_force_y, fix16_from_int(airship.dryMass));
   fix16_t acceleration_x = fix16_div(net_force_x, fix16_from_int(airship.dryMass)); //mass will need to change to total once everything is added correctly
-  //logWrite("@throttleY: %d\n", throttle_y);
-  //logWrite("@throttleX: %d\n", throttle_x);
   
   #if AIRSHIP_DEBUG
     // logWrite("LOG Engine Thrust: %d\n", fix16_to_int(totalthurst));
@@ -311,16 +311,16 @@ void gameGsLoop(void) {
   /*** Update the positions based on the velocity ***/
   
   //add checks to make sure the ship doesn't go off screen, if it does then stop adding to the position.
-  airship.pos.y = fix16_add(airship.pos.y, airship.yvel);
-  airship.pos.x = fix16_add(airship.pos.x,airship.xvel);
+  airship.pos.y = fix16_add(airship.pos.y, fix16_mul(airship.yvel,testdt));
+  airship.pos.x = fix16_add(airship.pos.x,fix16_mul(airship.xvel,testdt));
 
   //clamp the position to make sure it doesn't go off screen
-  airship.pos.y = fix16_clamp(airship.pos.y, airship.bh, g_maxPosY);
-  airship.pos.x = fix16_clamp(airship.pos.x, fix16_from_int(0), g_maxPosX);
+  airship.pos.y = fix16_clamp(airship.pos.y, fix16_from_int(0), g_maxPosY_m);
+  airship.pos.x = fix16_clamp(airship.pos.x, fix16_from_int(0), g_maxPosX_m);
   
   //convert to screen.
-  ypos = fix16_to_int(fix16_sub(g_maxPosY,airship.pos.y)); //Take the gPosMaxY which is the total Y length of the tilemap and sibtract from the so the airship starts at the bottom
-  xpos = fix16_to_int(airship.pos.x);
+  ypos = fix16_to_int(fix16_sub(g_maxPosY,m_to_px(airship.pos.y))); //Take the gPosMaxY which is the total Y length of the tilemap and sibtract from the so the airship starts at the bottom
+  xpos = fix16_to_int(m_to_px(airship.pos.x));
  
   //update the position display on the score viewport
   updatePositionDisplay();
@@ -389,10 +389,8 @@ void gameGsDestroy(void) {
   logBlockBegin("gameGsDestroy");
   systemUse();
   bitmapDestroy(s_pBmShipTest);
-
+  bitmapDestroy(s_pTiles);
   bitmapDestroy(s_pBmShipTest_Mask);
-
-  // This will also destroy all associated viewports and viewport managers
   viewDestroy(s_pView);
   logBlockEnd("gameGsDestroy");
 }
@@ -523,4 +521,12 @@ void clampAxis(fix16_t *pPos, fix16_t *pVel, fix16_t max) {
   if(*pPos < 0 && *pVel < 0) *pVel = 0;
   else if(*pPos > max && *pVel > 0) *pVel = 0;
   *pPos = CLAMP(*pPos, 0, max);
+}
+
+fix16_t m_to_px(fix16_t m)  {
+  return fix16_mul(m, fix16_from_int(PX_PER_M)); 
+}
+
+fix16_t px_to_m(fix16_t px) { 
+  return fix16_mul(px, F16(1.0 / PX_PER_M)); 
 }

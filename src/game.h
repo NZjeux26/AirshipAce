@@ -6,8 +6,8 @@
 #include <fixmath/fix16.h>
 #include "atmosphere.h"
 //map size in tiles, 84x75 is 1344 tiles, at 16x16px per tile this is 1344*256 
-#define WIDTH 84
-#define HEIGHT 75
+#define WIDTH 840
+#define HEIGHT 750
 
 extern int tile_data[HEIGHT][WIDTH];
 
@@ -22,6 +22,9 @@ void updateThrottleDisplay();
 void updateVelocityDisplay();
 void updatePositionDisplay();
 void clampAxis(fix16_t *pPos, fix16_t *pVel, fix16_t max);
+fix16_t m_to_px(fix16_t m);
+fix16_t px_to_m(fix16_t px);
+
 typedef struct airship_obj {//struct for player parameters
     fix16_t length;         //Length of the airship for calculations
     fix16_t diameter;       //Diameter of the airship for calculations
