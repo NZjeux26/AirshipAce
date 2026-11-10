@@ -8,6 +8,7 @@
 #include "src/game.h"
 #include "src/menu.h"
 #include "src/states.h"
+#include "src/input.h"
 
 tStateManager *g_pStateManager;
 tState *g_pGameState;
@@ -15,7 +16,7 @@ tState *g_pMenuState;
 
 void genericCreate(void) {
   // Here goes your startup code
-  keyCreate(); // We'll use keyboard
+  inputOpen();
   timerCreate();
   // Initialize gamestate
   g_pStateManager = stateManagerCreate();
@@ -26,7 +27,7 @@ void genericCreate(void) {
 
 void genericProcess(void) {
   // Here goes code done each game frame
-  keyProcess();
+  inputProcess();
   timerProcess();
   stateProcess(g_pStateManager); // Process current gamestate's loop
 }
@@ -35,6 +36,7 @@ void genericDestroy(void) {
   // Here goes your cleanup code
   stateManagerDestroy(g_pStateManager);
   stateDestroy(g_pGameState);
-  keyDestroy(); // We don't need it anymore
+  inputClose(); // We don't need it anymore
   logWrite("Goodbye, Amiga!\n");
 }
+

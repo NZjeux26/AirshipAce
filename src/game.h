@@ -6,8 +6,8 @@
 #include <fixmath/fix16.h>
 #include "atmosphere.h"
 //map size in tiles, 84x75 is 1344 tiles, at 16x16px per tile this is 1344*256 
-#define WIDTH 840
-#define HEIGHT 750
+#define WIDTH 84
+#define HEIGHT 75
 
 extern int tile_data[HEIGHT][WIDTH];
 
@@ -22,6 +22,7 @@ void updateThrottleDisplay();
 void updateVelocityDisplay();
 void updatePositionDisplay();
 void clampAxis(fix16_t *pPos, fix16_t *pVel, fix16_t max);
+void updateMousepos(short mouseX, short mouseY);
 fix16_t m_to_px(fix16_t m);
 fix16_t px_to_m(fix16_t px);
 
@@ -35,12 +36,12 @@ typedef struct airship_obj {//struct for player parameters
     fix16_t frontal_area;
     fix16_t lateral_area;
     short ballest;
-    short dryMass;            //Dry mass of the airship
-    short wetMass;            //Wet mass of the airship, this includes fuel, weapons, ammo, crew, cargo
-    short cargoMass;          //Cargo mass
+    short dryMass;          //Dry mass of the airship
+    short wetMass;          //Wet mass of the airship, this includes fuel, weapons, ammo, crew, cargo
+    short cargoMass;        //Cargo mass
     short crew;             //amount of crew
-    short crewMass;           //amount of crew in tons
-    short weaponMass;         //mass of th weapon loadout
+    short crewMass;         //amount of crew in tons
+    short weaponMass;       //mass of th weapon loadout
     short weaponHardpoints; //amount of hardpoints the ship has for weapons
     short engines;          //amount of engines
     fix16_t xvel;           //x velocity
@@ -60,5 +61,15 @@ typedef struct engine_obj{
     fix16_t ve; //the velocity of the air behind the propeller at full speed, zero forward velocity
     fix16_t thrust;
 } engine_obj;
+
+typedef struct weapon_obj{
+    short mass;         //mass of the weapon, to be added to an airship_obj WeaponMass
+    short health;       //health of the weapon, placeholder
+    short type;         //type of weapon, allows restriction of hardpoints to weapon types.
+    short mag_size;     //Maximum amount of ammo this unit can store
+    short ammo;         //What is loaded/useble.
+    fix16_t muzzle_vel; //how fast the object being shot out is, for both the bullet sprite and physics engine
+
+} weapon_obj;
 
 #endif // _GAME_H_

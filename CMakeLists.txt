@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.14.0)
 project(AirshipAce LANGUAGES ASM C)
 set(ACE_DEBUG ON)
 set(ACE_DEBUG_UAE ON)
+set(ACE_USE_AGA_FEATURES ON)
 #set(CMAKE_C_STANDARD 17)
 file(GLOB_RECURSE SOURCES src/*.c main.c tilemap_array.c)
 

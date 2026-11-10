@@ -10,6 +10,7 @@
 #include <ace/managers/state.h>
 #include <ace/managers/rand.h>
 #include <ace/managers/sprite.h>
+#include <ace/managers/mouse.h>
 #include <ace/managers/bob.h>
 #include <ace/utils/file.h>
 #include <ace/utils/font.h>
@@ -61,6 +62,13 @@ tCameraManager *pCamera;
 
 tBob shipBob;
 
+static tBitMap *pBmMouseCursorSrc;
+static tBitMap *pBmMouseCursorData;
+static tSprite *pSMouseCursor;
+
+short mouseX = 0;
+short mouseY = 0;
+
 //game vars
 UWORD ypos = 0;
 UWORD xpos = 0;
@@ -80,6 +88,7 @@ fix16_t testdt = 0;
 
 airship_obj airship;  //this is just a testing version, in a full version of the game i'd have these named correctly with ship types etc...
 engine_obj engine;
+weapon_obj cannon;
 Atmosphere atmosphere;
 Constants constants;
 
@@ -88,11 +97,12 @@ void gameGsCreate(void) {
 
   //s_pRandManager = randCreate(1+(sRayPos.bfPosY << 8), 1 + sRayPos.bfPosX);
 
-  s_pView = viewCreate(0,TAG_VIEW_GLOBAL_PALETTE, 1,TAG_END); // Important thing here, you can set different palettes for the different viewports.
+  s_pView = viewCreate(0,TAG_VIEW_USES_AGA, 1,TAG_END); // Important thing here, you can set different palettes for the different viewports.
 
   //The order of the viewport creation is important, the height starts from the 0 line, then the next viewport is created below it, and so on. So the order of creation is important.
   s_pVpMain = vPortCreate(0,
   TAG_VPORT_VIEW, s_pView,
+  TAG_VPORT_USES_AGA,1,
   TAG_VPORT_BPP, 5,
   TAG_VPORT_HEIGHT, PLAYFIELD_HEIGHT, //playfield height put here since I want to leave space for the score in the view
   TAG_END);
@@ -162,7 +172,8 @@ void gameGsCreate(void) {
     logWrite("LOG Density1: %d\n", fix16_to_int(atmosphere.denisty));
   #endif
 
-  //create the airship
+  //create the airship *this is to be moved to an seperate function later.
+  // Ship classes, have premade functions for them.
   airship.pos = createVector2D(px_to_m(F16(PLAYFIELD_WIDTH / 2)), F16(0));
   airship.bw = 16;
   airship.bh = 14;
@@ -176,6 +187,22 @@ void gameGsCreate(void) {
   airship.lateral_area = calculate_lateral_area(airship.length,airship.diameter);
   airship.xvel_max = F16(10.0);
   airship.yvel_max = F16(10.0);
+
+  //create the engine
+  engine.mass = 2;
+  engine.fuel_flow = F16(0.719);
+  engine.prop_diameter = F16(2.032);
+  engine.prop_efficiency = F16(0.83);
+  engine.thrust = F16(0);
+  engine.ve = F16(3.5);
+  engine.prop_area = cal_prop_area(&engine);
+  engine.thrust = F16(0); //initial value for thrust, it's calculated each frame along with everything else.
+
+  //create the weapon (just one for now)
+  cannon.mass = 8.0;
+  cannon.health = 100;
+  cannon.type = 0;
+  cannon.muzzle_vel = F16(20.0);
 
   //constant — this reuses ACE's own (already-correct) camera bounds:
   //These might be updated later to be fixed values if I standardise a mapsize.
@@ -196,16 +223,6 @@ void gameGsCreate(void) {
   logWrite("LOG Airship frontal: %d\n",fix16_to_int(airship.frontal_area));
   logWrite("LOG Airship lateral: %d\n",fix16_to_int(airship.lateral_area));
   #endif
-
-  //create the engine
-  engine.mass = 2;
-  engine.fuel_flow = F16(0.719);
-  engine.prop_diameter = F16(2.032);
-  engine.prop_efficiency = F16(0.83);
-  engine.thrust = F16(0);
-  engine.ve = F16(3.5);
-  engine.prop_area = cal_prop_area(&engine);
-  engine.thrust = F16(0); //initial value for thrust, it's calculated each frame along with everything else.
 
   //bitmap masks for keep background under the bitmap
   s_pBmTestMask  = bitmapCreate(airship.bw,airship.bh,5,0); //explictyly using 16 
@@ -265,6 +282,13 @@ void gameGsLoop(void) {
     timerWaitUs((frame_delay - dt));
   }
 
+  //get mouse cursor x/y coords.
+  mouseX = mouseGetX(MOUSE_PORT_1);
+  mouseY = mouseGetY(MOUSE_PORT_1);
+
+  //updateMousepos(mouseX,mouseY);
+  //logWrite("Mouse X Value2: %i\n",mouseX);
+  
   //undraw the airship
   bobBegin(s_pMainBuffer->pScroll->pBack);
 
@@ -346,7 +370,10 @@ void gameGsLoop(void) {
     throttle_y -=1;
     updateThrottleDisplay();
   }
-
+  if(keyCheck(KEY_SPACE)){
+    //fire weapon
+  }
+  
   throttle_x = CLAMP(throttle_x, -99, 99);
   throttle_y = CLAMP(throttle_y, -99, 99);
   
@@ -354,6 +381,9 @@ void gameGsLoop(void) {
   shipBob.sPos.uwX = xpos;
   shipBob.sPos.uwY = ypos;
   
+  //rect place holder for the mouse
+  //blitRect(s_pMainBuffer->pScroll->pBack,mouseX,mouseY,3,3,8);
+
   //camera 
   cameraFollowTarget(pCamera, s_pVpMain, xpos, ypos);
 
@@ -407,6 +437,14 @@ void drawBackgroundTiles(int tile_data[HEIGHT][WIDTH]){
     }
 }
 
+void updateMousepos(short mouseX, short mouseY){
+  logWrite("Mouse X Value: %d\n",mouseX);
+  //pSMouseCursor->wX = mouseX;
+  //pSMouseCursor->wY = mouseY;
+    
+  // spriteProcess(pSMouseCursor);
+  // spriteProcessChannel(CURSOR_SPRITE_CHANNEL);
+}
 /**
  * Moves the camera to keep (wTargetX, wTargetY) within a margin of the
  * viewport edges. Correction is proportional to how far past the margin
