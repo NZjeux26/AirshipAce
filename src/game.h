@@ -5,10 +5,11 @@
 #include <ace/managers/viewport/camera.h>
 #include <fixmath/fix16.h>
 #include "atmosphere.h"
+
 //map size in tiles, 84x75 is 1344 tiles, at 16x16px per tile this is 1344*256 
 #define WIDTH 84
 #define HEIGHT 75
-
+#define MAX_WEAPONS 8 //max weapons per ship, this is a placeholder until I can figure out how to do dynamic memory allocation
 extern int tile_data[HEIGHT][WIDTH];
 
 void gameGsCreate(void);
@@ -26,7 +27,58 @@ void updateMousepos(short mouseX, short mouseY);
 fix16_t m_to_px(fix16_t m);
 fix16_t px_to_m(fix16_t px);
 
-typedef struct airship_obj {//struct for player parameters
+typedef struct engine_obj{
+    short mass;
+    fix16_t fuel_flow;
+    fix16_t prop_diameter;
+    fix16_t prop_area;
+    fix16_t prop_efficiency;
+    fix16_t ve; //the velocity of the air behind the propeller at full speed, zero forward velocity
+    fix16_t thrust;
+} engine_obj;
+
+//If it's the same between weapons or projectiles it's in the obj, if not it's in the instance
+typedef struct {
+    short mass;
+    short damage;
+    short ttl;
+    UBYTE behaviour;
+    UBYTE sprite_id; //probably not needed, but just in case I want to have different sprites for the same projectile type
+} projectile_def;
+
+typedef struct {
+    Vector2D pos;           //Position
+    fix16_t xvel, yvel;
+
+    short ttl;
+
+    const projectile_def *def;
+    UBYTE active;
+    UBYTE owner;
+    UBYTE angle;
+} projectile_inst;
+
+typedef struct{
+    short mass;         //mass of the weapon, to be added to an airship_obj WeaponMass
+    UBYTE type;         //type of weapon, allows restriction of hardpoints to weapon types.
+    short mag_size;     //Maximum amount of ammo this unit can store
+    fix16_t muzzle_vel;   //how fast the object being shot out is, for both the bullet sprite and physics engine
+    short reload_time;  //How long the gun takes to reloadn(in frames)
+    short fire_interval; //How many shots per frame it fires 
+    const projectile_def *projectile; //pointer to projectile def.
+} weapon_def;
+
+typedef struct{
+    const weapon_def *def; //pointer to weapon def.
+    short health;       //health of the weapon, placeholder
+    short current_mag_count;
+    short total_ammo;
+    short cooldown_time;
+    short reload_timer;
+    UBYTE reloading;
+} weapon_inst;
+
+typedef struct airship_obj{//struct for player parameters
     fix16_t length;         //Length of the airship for calculations
     fix16_t diameter;       //Diameter of the airship for calculations
     short bw;               //Rectangle width **This and the height will be what's actually drawn on screen and is also the hitbox
@@ -42,34 +94,15 @@ typedef struct airship_obj {//struct for player parameters
     short crew;             //amount of crew
     short crewMass;         //amount of crew in tons
     short weaponMass;       //mass of th weapon loadout
-    short weaponHardpoints; //amount of hardpoints the ship has for weapons
     short engines;          //amount of engines
+    short health;           //health
     fix16_t xvel;           //x velocity
     fix16_t yvel;           //y velocity
     fix16_t xvel_max;       //max x velocity
     fix16_t yvel_max;       //max y velocity  
     Vector2D pos;           //Position
-    short health;           //health
+    weapon_inst weapons[MAX_WEAPONS]; //array of weapon instances, the size of this array is determined by the max_weapons variable
+    UBYTE weapon_count;      //amount of weapons currently on the ship
 } airship_obj;
-
-typedef struct engine_obj{
-    short mass;
-    fix16_t fuel_flow;
-    fix16_t prop_diameter;
-    fix16_t prop_area;
-    fix16_t prop_efficiency;
-    fix16_t ve; //the velocity of the air behind the propeller at full speed, zero forward velocity
-    fix16_t thrust;
-} engine_obj;
-
-typedef struct weapon_obj{
-    short mass;         //mass of the weapon, to be added to an airship_obj WeaponMass
-    short health;       //health of the weapon, placeholder
-    short type;         //type of weapon, allows restriction of hardpoints to weapon types.
-    short mag_size;     //Maximum amount of ammo this unit can store
-    short ammo;         //What is loaded/useble.
-    fix16_t muzzle_vel; //how fast the object being shot out is, for both the bullet sprite and physics engine
-
-} weapon_obj;
 
 #endif // _GAME_H_

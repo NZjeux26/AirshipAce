@@ -1,6 +1,7 @@
 #include "game.h"
 #include "atmosphere.h"
 #include "states.h"
+#include "weapons.h"
 #include <ace/managers/key.h>
 #include <ace/managers/game.h>
 #include <ace/managers/system.h>
@@ -20,8 +21,8 @@
 
 #define false 0
 #define true 1
-//-------------------------------------------------------------- NEW STUFF START
-//AMiga Pal 320x256
+
+//Defines Setup for the game, including the playfield size, camera margins, and other constants.
 #define ATMOSPHERE_DEBUG 0
 #define AIRSHIP_DEBUG 0
 #define PLAYFIELD_HEIGHT (256-32) //32 for the top viewport height
@@ -29,10 +30,12 @@
 #define CAMERA_MARGIN_X 140       // Tunable follow behavior - how close to the edge before camera engages
 #define CAMERA_MARGIN_Y 30
 #define FRAME_SEC 20
+#define CURSOR_SPRITE_CHANNEL 5
 #define GAME_MAX_X_VEL F16(20)
 #define GAME_MAX_Y_VEL F16(20)
 #define TILE_SIZE_PX (1 << 4)     // matches TAG_TILEBUFFER_TILE_SHIFT
 #define PX_PER_M 10               //Sets the scale of how many pixels per m
+#define MAX_PROJECTILES 512       //Max projectiles allowed on screen, massive number so it wont be tirggered
 
 //Viewports and Tile manager
 static tView *s_pView; // View containing all the viewports
@@ -42,11 +45,13 @@ static tVPort *s_pVpMain; // Viewport for playfield
 static tTileBufferManager *s_pMainBuffer;
 static tRandManager *s_pRandManager;
 
-//static tBitMap *pBmBackground;
+// artwork
 static tBitMap *s_pBmTestMask;
 static tBitMap *s_pBmShipTest;
 static tBitMap *s_pBmShipTest_Mask;
 static tBitMap *s_pTiles;
+static tBitMap *s_pBmCannon_Proj;
+static tSprite *s_pBmCannon_Proj_Mask;
 
 //UI Display, Font, Text etc
 tFont *fallfontsmall; //global for font
@@ -60,7 +65,9 @@ char displaybufferX[20];
 char displaybufferY[20];
 tCameraManager *pCamera;
 
+//bobs
 tBob shipBob;
+tBob cannonProjBob;
 
 static tBitMap *pBmMouseCursorSrc;
 static tBitMap *pBmMouseCursorData;
@@ -88,7 +95,8 @@ fix16_t testdt = 0;
 
 airship_obj airship;  //this is just a testing version, in a full version of the game i'd have these named correctly with ship types etc...
 engine_obj engine;
-weapon_obj cannon;
+weapon_def cannon;
+projectile_def cannonProj_HE;
 Atmosphere atmosphere;
 Constants constants;
 
@@ -187,6 +195,7 @@ void gameGsCreate(void) {
   airship.lateral_area = calculate_lateral_area(airship.length,airship.diameter);
   airship.xvel_max = F16(10.0);
   airship.yvel_max = F16(10.0);
+  airship.weapon_count = 1;
 
   //create the engine
   engine.mass = 2;
@@ -200,9 +209,26 @@ void gameGsCreate(void) {
 
   //create the weapon (just one for now)
   cannon.mass = 8.0;
-  cannon.health = 100;
   cannon.type = 0;
-  cannon.muzzle_vel = F16(20.0);
+  cannon.muzzle_vel = F16(50.0);
+  cannon.mag_size = 40;
+  cannon.fire_interval = 4;
+  cannon.reload_time = 100; //in frames so 100 frames is 2sec
+  cannon.projectile = &cannonProj_HE;
+    
+  //airship weapons setup
+  airship.weapons[0].def = &cannon;
+  airship.weapons[0].health = 100;
+  airship.weapons[0].total_ammo = 160;
+  airship.weapons[0].cooldown_time = 0;
+  airship.weapons[0].current_mag_count = cannon.mag_size;
+  airship.weapons[0].reload_timer = 0;
+  airship.weapons[0].reloading = 0;
+
+  cannonProj_HE.mass = 2;
+  cannonProj_HE.damage = 15;
+  cannonProj_HE.ttl = 150;
+  cannonProj_HE.behaviour = 2;
 
   //constant — this reuses ACE's own (already-correct) camera bounds:
   //These might be updated later to be fixed values if I standardise a mapsize.
@@ -238,6 +264,20 @@ void gameGsCreate(void) {
   xpos,ypos); //I *think* this is correct
 
   bobReallocateBuffers();
+
+  //setup the sprite manager and enable the sprite DMA bit
+  spriteManagerCreate(s_pView, 0, NULL);
+  systemSetDmaBit(DMAB_SPRITE, 1);
+
+  //create the mouse cursor
+  pBmMouseCursorSrc = bitmapCreateFromPath("data/cursor.bm", 0);
+  pBmMouseCursorData = bitmapCreate(16,16,2,BMF_INTERLEAVED | BMF_CLEAR);
+  pSMouseCursor = spriteAdd(CURSOR_SPRITE_CHANNEL, pBmMouseCursorData);
+
+  spriteSetEnabled(pSMouseCursor, 1);
+
+  blitCopy(pBmMouseCursorSrc, 0,0,
+  pBmMouseCursorData,0,0,16,16,MINTERM_COOKIE);
 
   //create the throttle text bitmap buffers.
   throttle_x = 999;
@@ -285,9 +325,8 @@ void gameGsLoop(void) {
   //get mouse cursor x/y coords.
   mouseX = mouseGetX(MOUSE_PORT_1);
   mouseY = mouseGetY(MOUSE_PORT_1);
-
-  //updateMousepos(mouseX,mouseY);
-  //logWrite("Mouse X Value2: %i\n",mouseX);
+  
+  updateMousepos(mouseX,mouseY);
   
   //undraw the airship
   bobBegin(s_pMainBuffer->pScroll->pBack);
@@ -380,9 +419,6 @@ void gameGsLoop(void) {
   //update the bob positions with the ships xpos and ypos
   shipBob.sPos.uwX = xpos;
   shipBob.sPos.uwY = ypos;
-  
-  //rect place holder for the mouse
-  //blitRect(s_pMainBuffer->pScroll->pBack,mouseX,mouseY,3,3,8);
 
   //camera 
   cameraFollowTarget(pCamera, s_pVpMain, xpos, ypos);
@@ -421,6 +457,8 @@ void gameGsDestroy(void) {
   bitmapDestroy(s_pBmShipTest);
   bitmapDestroy(s_pTiles);
   bitmapDestroy(s_pBmShipTest_Mask);
+  systemSetDmaBit(DMAB_SPRITE, 0);
+  spriteManagerDestroy();
   viewDestroy(s_pView);
   logBlockEnd("gameGsDestroy");
 }
@@ -438,13 +476,14 @@ void drawBackgroundTiles(int tile_data[HEIGHT][WIDTH]){
 }
 
 void updateMousepos(short mouseX, short mouseY){
-  logWrite("Mouse X Value: %d\n",mouseX);
-  //pSMouseCursor->wX = mouseX;
-  //pSMouseCursor->wY = mouseY;
+  pSMouseCursor->wX = mouseX;
+  pSMouseCursor->wY = mouseY;
     
-  // spriteProcess(pSMouseCursor);
-  // spriteProcessChannel(CURSOR_SPRITE_CHANNEL);
+  spriteRequestMetadataUpdate(pSMouseCursor);
+  spriteProcess(pSMouseCursor);
+  spriteProcessChannel(CURSOR_SPRITE_CHANNEL);
 }
+
 /**
  * Moves the camera to keep (wTargetX, wTargetY) within a margin of the
  * viewport edges. Correction is proportional to how far past the margin

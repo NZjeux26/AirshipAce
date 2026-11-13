@@ -2,7 +2,6 @@
 #define _CONSTANTS_H_
 
 #include <fixmath/fix16.h>
-#include "game.h"
 
 typedef struct airship_obj airship_obj;
 typedef struct engine_obj engine_obj;
