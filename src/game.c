@@ -35,7 +35,7 @@
 #define GAME_MAX_Y_VEL F16(20)
 #define TILE_SIZE_PX (1 << 4)     // matches TAG_TILEBUFFER_TILE_SHIFT
 #define PX_PER_M 10               //Sets the scale of how many pixels per m
-#define MAX_PROJECTILES 512       //Max projectiles allowed on screen, massive number so it wont be tirggered
+
 
 //Viewports and Tile manager
 static tView *s_pView; // View containing all the viewports
@@ -196,6 +196,8 @@ void gameGsCreate(void) {
   airship.xvel_max = F16(10.0);
   airship.yvel_max = F16(10.0);
   airship.weapon_count = 1;
+  airship.team = 0; //player team
+  airship.active_weapon = 0; //set the active weapon to the first weapon in the array
 
   //create the engine
   engine.mass = 2;

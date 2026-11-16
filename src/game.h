@@ -10,6 +10,7 @@
 #define WIDTH 84
 #define HEIGHT 75
 #define MAX_WEAPONS 8 //max weapons per ship, this is a placeholder until I can figure out how to do dynamic memory allocation
+#define MAX_PROJECTILES 512       //Max projectiles allowed on screen, massive number so it wont be tirggered
 extern int tile_data[HEIGHT][WIDTH];
 
 void gameGsCreate(void);
@@ -54,7 +55,7 @@ typedef struct {
 
     const projectile_def *def;
     UBYTE active;
-    UBYTE owner;
+    UBYTE owner; //owner 0 = player, 1 = enemy, 2 = neutral
     UBYTE angle;
 } projectile_inst;
 
@@ -74,6 +75,7 @@ typedef struct{
     short current_mag_count;
     short total_ammo;
     short cooldown_time;
+    ULONG last_fire_time;
     short reload_timer;
     UBYTE reloading;
 } weapon_inst;
@@ -103,6 +105,8 @@ typedef struct airship_obj{//struct for player parameters
     Vector2D pos;           //Position
     weapon_inst weapons[MAX_WEAPONS]; //array of weapon instances, the size of this array is determined by the max_weapons variable
     UBYTE weapon_count;      //amount of weapons currently on the ship
+    UBYTE team;            //type of ship, AI or player.
+    UBYTE active_weapon;      //index of the currently active weapon
 } airship_obj;
 
 #endif // _GAME_H_

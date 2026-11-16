@@ -5,7 +5,7 @@
 #include "game.h"
 
 Vector2D cal_recoil(weapon_def *weapon, fix16_t angle);
-void fire_weapon(weapon_inst *weapon, short mouseX, short mouseY);
+UBYTE fire_weapon(airship_obj *airship, projectile_inst projectiles[],short *projectile_count, ULONG current_time, short mouseX, short mouseY);
 void update_projectile(projectile_inst *proj, fix16_t dt);
 
 #endif
