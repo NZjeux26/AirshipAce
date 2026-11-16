@@ -56,7 +56,7 @@ typedef struct {
     const projectile_def *def;
     UBYTE active;
     UBYTE owner; //owner 0 = player, 1 = enemy, 2 = neutral
-    UBYTE angle;
+    fix16_t angle;
 } projectile_inst;
 
 typedef struct{

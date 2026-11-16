@@ -10,8 +10,8 @@
 Vector2D cal_recoil(weapon_def *weapon, fix16_t angle){
     fix16_t impluse = fix16_mul(weapon->muzzle_vel, F16(weapon->projectile->mass));
     
-    fix16_t recoil_x = -fix16_mul(impluse, fix16_cos(fix16_deg2rad(angle)));
-    fix16_t recoil_y = -fix16_mul(impluse, fix16_sin(fix16_deg2rad(angle)));
+    fix16_t recoil_x = -fix16_mul(impluse, fix16_cos(angle));
+    fix16_t recoil_y = -fix16_mul(impluse, fix16_sin(angle));
     return (Vector2D){recoil_x, recoil_y};
 }
 
@@ -40,7 +40,7 @@ UBYTE fire_weapon(airship_obj *airship, projectile_inst projectiles[],short *pro
     new_proj->active = 1; //set the projectile as active
     new_proj->owner = airship->team; //set the owner of the projectile to the airship's team
     new_proj->pos = airship->pos; //set the position of the projectile to the airship's position
-    new_proj->angle = fix16_to_int(fix16_rad2deg(angle_to_mouse)); //set the angle of the projectile based on the angle to the mouse cursor ** Might not actually be used.
+    new_proj->angle = angle_to_mouse; //set the angle of the projectile based on the angle to the mouse cursor, In radians. Passed to recoil function.
     new_proj->xvel = fix16_mul(weapon->def->muzzle_vel, fix16_cos(angle_to_mouse)); //set the x velocity of the projectile based on the weapon's muzzle velocity and angle
     new_proj->yvel = fix16_mul(weapon->def->muzzle_vel, fix16_sin(angle_to_mouse)); //set the y velocity of the projectile based on the weapon's muzzle velocity and angle
     new_proj->ttl = weapon->def->projectile->ttl; //set the time to live of the projectile based on the weapon's projectile definition
